@@ -474,7 +474,11 @@ class MockLLMClient(BaseLLMClient):
 
     def __init__(
         self,
-        default_response: str = "Mock answer grounded in context [1].",
+        default_response: str = (
+            "Based on the provided research context, the study investigates key experimental "
+            "findings and evaluated methodologies [1]. The proposed architecture demonstrates "
+            "consistent empirical improvements across standard evaluation benchmarks [1]."
+        ),
         responses: list[str] | None = None,
         model: str = "mock-model",
     ) -> None:
