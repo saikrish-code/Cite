@@ -56,6 +56,7 @@ class Settings(BaseSettings):
 
     # ChromaDB
     CHROMA_PERSIST_DIRECTORY: str = "./chroma_data"
+    CHROMA_COLLECTION_NAME: str = "citerag_chunks"
     CHROMA_SERVER_HOST: str = "localhost"
     CHROMA_SERVER_PORT: int = 8001
 
