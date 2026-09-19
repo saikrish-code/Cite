@@ -163,6 +163,57 @@ def run_pipeline(
             snippet = snippet[:200] + "..."
         print(f'  Snippet: "{snippet}"')
 
+    # 5. Synthesize Grounded RAG Answer
+    print("\n[Step 5/5] Synthesizing Grounded Answer with Citations via RAGService")
+    from app.services.llm import MockLLMClient, get_llm_client
+    from app.services.rag import RAGService
+
+    # Check if a live API key is configured; otherwise use realistic MockLLMClient
+    if settings.LLM_PROVIDER.lower() == "openai" and settings.OPENAI_API_KEY:
+        llm = get_llm_client()
+    elif (
+        settings.LLM_PROVIDER.lower() in ("anthropic", "claude")
+        and settings.ANTHROPIC_API_KEY
+    ):
+        llm = get_llm_client()
+    elif settings.LLM_PROVIDER.lower() == "ollama":
+        llm = get_llm_client()
+    else:
+        llm = MockLLMClient(
+            default_response=(
+                "The Transformer model relies entirely on self-attention mechanisms [1]. "
+                "Recurrent models typically factor computation along symbol positions [2], "
+                "whereas the Transformer dispenses with recurrence to achieve parallelization [1]."
+            ),
+            model="mock-gpt4-citations",
+        )
+
+    rag_service = RAGService(vector_store=vector_store, llm_client=llm)
+    rag_start = time.perf_counter()
+    rag_resp = rag_service.answer(
+        query=query,
+        k=k,
+        document_id=document_id,
+        user_id=user_id,
+    )
+    rag_duration = (time.perf_counter() - rag_start) * 1000
+
+    print(
+        f"  [OK] Answer generated in {rag_duration:.1f} ms using LLM model '{llm.model_name}'"
+    )
+    print(f"  Context Found: {rag_resp.context_found}")
+    print("\n  Answer:")
+    print(f"    {rag_resp.answer}")
+    print("\n  Resolved Citations:")
+    for cit in rag_resp.citations:
+        print(
+            f"    - [{cit.source_id}] {cit.filename} (Page {cit.page}) | Score: {cit.score:.4f}"
+        )
+        snip = cit.snippet.replace("\n", " ")
+        if len(snip) > 120:
+            snip = snip[:120] + "..."
+        print(f'      Snippet: "{snip}"')
+
     print("\n" + "=" * 80)
     print(" Pipeline completed successfully!")
     print("=" * 80 + "\n")

@@ -64,10 +64,25 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL_NAME: str = "BAAI/bge-small-en-v1.5"
     RERANKER_MODEL_NAME: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
-    # LLM API Keys (Optional)
+    # LLM Settings & API Keys
+    LLM_PROVIDER: str = (
+        "openai"  # "openai", "anthropic" / "claude", "ollama", or "mock"
+    )
     OPENAI_API_KEY: str | None = None
+    OPENAI_MODEL: str = "gpt-4o-mini"
+    OPENAI_BASE_URL: str | None = None
+
     ANTHROPIC_API_KEY: str | None = None
+    ANTHROPIC_MODEL: str = "claude-3-5-sonnet-20241022"
+    ANTHROPIC_BASE_URL: str | None = None
+
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    OLLAMA_MODEL: str = "llama3.2"
+
     GEMINI_API_KEY: str | None = None
+
+    LLM_TEMPERATURE: float = 0.0
+    LLM_MAX_TOKENS: int = 1024
 
 
 @lru_cache
