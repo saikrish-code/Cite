@@ -8,16 +8,51 @@ from unittest.mock import MagicMock, patch
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from app.api.dependencies import get_current_user
+from app.core.database import AsyncSessionLocal, Base, engine
 from app.main import app
+from app.models.document import Document
+from app.models.user import User
 from app.services.document_store import document_store
 
 
 @pytest.fixture(autouse=True)
-def _clear_stores() -> None:
-    """Clear document store before each test to ensure isolation."""
+async def _setup_db_and_auth():
+    """Ensure DB schema and mock authenticated user for document endpoints."""
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.create_all)
+
+    test_user = User(
+        id="test-user-id",
+        email="test_doc_user@university.edu",
+        hashed_password="hashed_pwd",
+        full_name="Doc Tester",
+        is_active=True,
+    )
+    async with AsyncSessionLocal() as session:
+        session.add(test_user)
+        await session.commit()
+
+    app.dependency_overrides[get_current_user] = lambda: test_user
     document_store.clear()
     yield
     document_store.clear()
+    app.dependency_overrides.pop(get_current_user, None)
+
+
+async def _add_test_doc(doc_id: str, filename: str, user_id: str = "test-user-id") -> None:
+    async with AsyncSessionLocal() as session:
+        doc = Document(
+            id=doc_id,
+            user_id=user_id,
+            filename=filename,
+            file_type="pdf",
+            status="ready",
+        )
+        session.add(doc)
+        await session.commit()
+    document_store.add_document(filename=filename, user_id=user_id, document_id=doc_id)
 
 
 @pytest.fixture
@@ -119,7 +154,7 @@ class TestDocumentUpload:
         assert "exceeds" in response.json()["detail"].lower()
 
     async def test_upload_with_custom_user_id(self, client: AsyncClient) -> None:
-        """Upload with custom user_id query parameter is recorded correctly."""
+        """Upload automatically associates document with current authenticated user ID."""
         fake_txt = b"Content for user test."
 
         with patch(
@@ -127,7 +162,6 @@ class TestDocumentUpload:
         ):
             response = await client.post(
                 "/api/v1/documents/upload",
-                params={"user_id": "user-42"},
                 files={"file": ("doc.txt", io.BytesIO(fake_txt), "text/plain")},
             )
 
@@ -135,7 +169,7 @@ class TestDocumentUpload:
         doc_id = response.json()["document_id"]
         record = document_store.get_document(doc_id)
         assert record is not None
-        assert record.user_id == "user-42"
+        assert record.user_id == "test-user-id"
 
     async def test_upload_registers_in_document_store(self, client: AsyncClient) -> None:
         """Uploading a document registers it in the document store."""
@@ -170,11 +204,10 @@ class TestDocumentList:
 
     async def test_list_after_upload(self, client: AsyncClient) -> None:
         """Listing documents after upload shows the registered document."""
-        # Manually add a document to the store
-        document_store.add_document(
+        await _add_test_doc(
             filename="research.pdf",
-            user_id="anonymous",
-            document_id="test-doc-001",
+            user_id="test-user-id",
+            doc_id="test-doc-001",
         )
 
         response = await client.get("/api/v1/documents")
@@ -186,21 +219,21 @@ class TestDocumentList:
         assert data["documents"][0]["document_id"] == "test-doc-001"
 
     async def test_list_filtered_by_user(self, client: AsyncClient) -> None:
-        """Listing with user_id filter returns only matching documents."""
-        document_store.add_document("a.pdf", user_id="alice", document_id="doc-a")
-        document_store.add_document("b.pdf", user_id="bob", document_id="doc-b")
+        """Listing returns only matching user documents."""
+        await _add_test_doc("doc-a", filename="a.pdf", user_id="test-user-id")
+        await _add_test_doc("doc-b", filename="b.pdf", user_id="other-user")
 
-        response = await client.get("/api/v1/documents", params={"user_id": "alice"})
+        response = await client.get("/api/v1/documents")
 
         assert response.status_code == 200
         data = response.json()
         assert data["total"] == 1
-        assert data["documents"][0]["user_id"] == "alice"
+        assert data["documents"][0]["user_id"] == "test-user-id"
 
     async def test_list_multiple_documents(self, client: AsyncClient) -> None:
         """Listing returns all registered documents."""
         for i in range(3):
-            document_store.add_document(f"doc_{i}.txt", document_id=f"doc-{i}")
+            await _add_test_doc(f"doc-{i}", filename=f"doc_{i}.txt", user_id="test-user-id")
 
         response = await client.get("/api/v1/documents")
 
@@ -213,7 +246,7 @@ class TestDocumentDelete:
 
     async def test_delete_existing_document(self, client: AsyncClient) -> None:
         """Deleting an existing document returns success with chunk count."""
-        document_store.add_document("paper.pdf", document_id="del-doc-1")
+        await _add_test_doc("del-doc-1", filename="paper.pdf", user_id="test-user-id")
 
         with patch(
             "app.api.v1.endpoints.documents.ChromaVectorStore"
@@ -242,7 +275,7 @@ class TestDocumentDelete:
 
     async def test_delete_handles_vector_store_error(self, client: AsyncClient) -> None:
         """Deletion proceeds even if vector store raises an error."""
-        document_store.add_document("broken.pdf", document_id="err-doc")
+        await _add_test_doc("err-doc", filename="broken.pdf", user_id="test-user-id")
 
         with patch(
             "app.api.v1.endpoints.documents.ChromaVectorStore"

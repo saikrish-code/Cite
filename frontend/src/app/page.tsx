@@ -14,6 +14,9 @@ import DocumentSidebar from "@/components/DocumentSidebar";
 import ChatMessage, { Message } from "@/components/ChatMessage";
 import ChatInput from "@/components/ChatInput";
 import CitationDrawer from "@/components/CitationDrawer";
+import AuthView from "@/components/AuthView";
+import UserMenu from "@/components/UserMenu";
+import { useAuth } from "@/context/AuthContext";
 import {
   DocumentItem,
   Citation,
@@ -42,6 +45,7 @@ function getCurrentTimestamp(): string {
 }
 
 export default function Home() {
+  const { user, token, isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -54,6 +58,12 @@ export default function Home() {
   const abortControllerRef = useRef<AbortController | null>(null);
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
+  // Clear state when user switches or logs out
+  useEffect(() => {
+    setMessages([]);
+    setSelectedDocId(null);
+  }, [user?.id]);
+
   // Auto-scroll chat to bottom
   const scrollToBottom = useCallback(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -61,8 +71,9 @@ export default function Home() {
 
   // Fetch documents list and test backend health
   const refreshDocuments = useCallback(async () => {
+    if (!token) return;
     try {
-      const docs = await listDocuments();
+      const docs = await listDocuments(token);
       setDocuments(docs);
       setBackendConnected(true);
     } catch (err) {
@@ -71,13 +82,19 @@ export default function Home() {
     } finally {
       setIsLoadingDocs(false);
     }
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     let active = true;
+    if (!token) {
+      setDocuments([]);
+      setIsLoadingDocs(false);
+      return;
+    }
+    setIsLoadingDocs(true);
     (async () => {
       try {
-        const docs = await listDocuments();
+        const docs = await listDocuments(token);
         if (active) {
           setDocuments(docs);
           setBackendConnected(true);
@@ -96,7 +113,7 @@ export default function Home() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [token]);
 
   // Scroll on message updates
   useEffect(() => {
@@ -146,8 +163,8 @@ export default function Home() {
         k: 4,
       },
       {
-        onToken: (token) => {
-          accumulated += token;
+        onToken: (tok) => {
+          accumulated += tok;
           setMessages((prev) =>
             prev.map((m) =>
               m.id === assistantMessageId
@@ -193,6 +210,7 @@ export default function Home() {
           abortControllerRef.current = null;
         },
       },
+      token,
       controller.signal
     );
   };
@@ -212,6 +230,23 @@ export default function Home() {
     handleStopStreaming();
     setMessages([]);
   };
+
+  if (isAuthLoading) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-slate-950 text-slate-100">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+          <p className="text-xs text-slate-400 font-medium">
+            Verifying CiteRAG session...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <AuthView />;
+  }
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-950 text-slate-100 antialiased">
@@ -328,6 +363,9 @@ export default function Home() {
                 <span className="hidden sm:inline text-xs">Clear</span>
               </button>
             )}
+
+            {/* User Account Menu */}
+            <UserMenu />
           </div>
         </header>
 

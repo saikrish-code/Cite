@@ -1,9 +1,9 @@
-"""Document management REST API endpoints.
+"""Document management REST API endpoints with strict per-user multi-tenant isolation.
 
 Provides:
-- POST /documents/upload — Upload and ingest a document (background processing)
-- GET /documents — List all tracked documents
-- DELETE /documents/{document_id} — Delete a document and its vector chunks
+- POST /documents/upload — Upload and ingest a document (background processing, user-scoped)
+- GET /documents — List all tracked documents belonging to the authenticated user
+- DELETE /documents/{document_id} — Delete an authenticated user's document and vector chunks
 """
 
 from __future__ import annotations
@@ -11,10 +11,17 @@ from __future__ import annotations
 import logging
 import os
 import uuid
+from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, status
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.dependencies import get_current_user
 from app.core.config import settings
+from app.core.database import AsyncSessionLocal, get_db
+from app.models.document import Document
+from app.models.user import User
 from app.schemas.api_document import (
     DocumentDeleteResponse,
     DocumentListItem,
@@ -37,7 +44,7 @@ def _validate_file(file: UploadFile) -> None:
         file: FastAPI UploadFile instance.
 
     Raises:
-        HTTPException: If the file type is unsupported or file exceeds size limit.
+        HTTPException: If the file type is unsupported or file name is missing.
     """
     if not file.filename:
         raise HTTPException(
@@ -59,7 +66,7 @@ def _validate_file(file: UploadFile) -> None:
 
 
 async def _read_and_validate_size(file: UploadFile) -> bytes:
-    """Read file content and validate size.
+    """Read file content and validate size limits.
 
     Args:
         file: FastAPI UploadFile instance.
@@ -90,15 +97,36 @@ async def _read_and_validate_size(file: UploadFile) -> bytes:
     return content
 
 
-def _background_ingest(
+async def _update_document_status_db(
+    document_id: str,
+    status_str: str,
+    chunk_count: int = 0,
+    error_message: str | None = None,
+) -> None:
+    """Update document status directly in database from background task."""
+    try:
+        async with AsyncSessionLocal() as session:
+            stmt = select(Document).where(Document.id == document_id)
+            res = await session.execute(stmt)
+            doc = res.scalar_one_or_none()
+            if doc:
+                doc.status = status_str
+                doc.chunk_count = chunk_count
+                doc.error_message = error_message
+                await session.commit()
+    except Exception as exc:
+        logger.exception("Failed to update database status for doc %s: %s", document_id, exc)
+
+
+async def _background_ingest(
     file_bytes: bytes,
     filename: str,
     document_id: str,
     user_id: str,
 ) -> None:
-    """Background task: parse, chunk, embed, and index a document.
+    """Background task: parse, chunk, embed, and index a document with user_id scoping.
 
-    Updates the document store status to 'ready' on success or 'failed' on error.
+    Updates the database and document store status to 'ready' on success or 'failed' on error.
 
     Args:
         file_bytes: Raw file content.
@@ -114,38 +142,44 @@ def _background_ingest(
         chunks = ingestion_service.ingest(file_bytes, filename)
 
         if not chunks:
+            err = "No text content could be extracted from the document."
+            await _update_document_status_db(document_id, "failed", error_message=err)
             document_store.update_status(
                 document_id=document_id,
                 status="failed",
-                error_message="No text content could be extracted from the document.",
+                error_message=err,
             )
             return
 
-        # Embed and index
+        # Embed and index with strict user_id tag
         chunk_ids = vector_store.add_chunks(
             chunks=chunks,
             document_id=document_id,
             user_id=user_id,
         )
 
+        await _update_document_status_db(document_id, "ready", chunk_count=len(chunk_ids))
         document_store.update_status(
             document_id=document_id,
             status="ready",
             chunk_count=len(chunk_ids),
         )
         logger.info(
-            "Successfully ingested document %s (%s): %d chunks indexed",
+            "Successfully ingested document %s (%s) for user %s: %d chunks indexed",
             document_id,
             filename,
+            user_id,
             len(chunk_ids),
         )
 
     except Exception as exc:
         logger.exception("Failed to ingest document %s (%s)", document_id, filename)
+        err = str(exc)
+        await _update_document_status_db(document_id, "failed", error_message=err)
         document_store.update_status(
             document_id=document_id,
             status="failed",
-            error_message=str(exc),
+            error_message=err,
         )
 
 
@@ -155,46 +189,61 @@ def _background_ingest(
     status_code=status.HTTP_202_ACCEPTED,
     summary="Upload Document",
     description=(
-        "Upload a PDF, DOCX, or TXT file for ingestion. "
-        "The document is processed in the background. Returns immediately with a "
-        "document ID and 'processing' status."
+        "Upload a PDF, DOCX, or TXT file for background ingestion. "
+        "Strictly associated with the authenticated caller's account."
     ),
 )
 async def upload_document(
     file: UploadFile,
     background_tasks: BackgroundTasks,
-    user_id: str = "anonymous",
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ) -> DocumentUploadResponse:
-    """Accept a document upload and launch background ingestion.
+    """Accept document upload and launch background ingestion for current user.
 
     Args:
         file: Uploaded file (multipart form data).
         background_tasks: FastAPI background task manager.
-        user_id: Optional owner user ID (query param, defaults to 'anonymous').
+        current_user: Authenticated user.
+        db: Scoped database session.
 
     Returns:
-        DocumentUploadResponse: Confirmation with document_id and status.
+        DocumentUploadResponse: Confirmation with document_id and 'processing' status.
     """
     _validate_file(file)
     file_bytes = await _read_and_validate_size(file)
 
     document_id = str(uuid.uuid4())
     filename = file.filename or "unknown"
+    _, ext = os.path.splitext(filename)
+
+    # Persist in Database
+    doc_record = Document(
+        id=document_id,
+        user_id=current_user.id,
+        filename=filename,
+        file_type=ext.lstrip(".").lower(),
+        file_size_bytes=len(file_bytes),
+        status="processing",
+        chunk_count=0,
+    )
+    db.add(doc_record)
+    await db.commit()
 
     # Register in document store
     document_store.add_document(
         filename=filename,
-        user_id=user_id,
+        user_id=current_user.id,
         document_id=document_id,
     )
 
-    # Launch background ingestion
+    # Launch background ingestion with user isolation
     background_tasks.add_task(
         _background_ingest,
         file_bytes=file_bytes,
         filename=filename,
         document_id=document_id,
-        user_id=user_id,
+        user_id=current_user.id,
     )
 
     return DocumentUploadResponse(
@@ -209,23 +258,24 @@ async def upload_document(
     response_model=DocumentListResponse,
     status_code=status.HTTP_200_OK,
     summary="List Documents",
-    description="Retrieve a list of all tracked documents with their ingestion status.",
+    description="Retrieve list of documents owned by the authenticated user.",
 )
 async def list_documents(
-    user_id: str | None = None,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ) -> DocumentListResponse:
-    """List all documents, optionally filtered by user.
+    """List documents belonging exclusively to the authenticated caller."""
+    stmt = (
+        select(Document)
+        .where(Document.user_id == current_user.id)
+        .order_by(Document.created_at.desc())
+    )
+    result = await db.execute(stmt)
+    records = result.scalars().all()
 
-    Args:
-        user_id: Optional user ID filter (query param).
-
-    Returns:
-        DocumentListResponse: Paginated document list.
-    """
-    records = document_store.list_documents(user_id=user_id)
     items = [
         DocumentListItem(
-            document_id=r.document_id,
+            document_id=r.id,
             filename=r.filename,
             status=r.status,
             chunk_count=r.chunk_count,
@@ -242,40 +292,56 @@ async def list_documents(
     response_model=DocumentDeleteResponse,
     status_code=status.HTTP_200_OK,
     summary="Delete Document",
-    description="Delete a document and all its indexed vector chunks.",
+    description="Delete an authenticated user's document and its indexed vector chunks.",
 )
-async def delete_document(document_id: str) -> DocumentDeleteResponse:
-    """Delete a document and its vector store chunks.
+async def delete_document(
+    document_id: str,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> DocumentDeleteResponse:
+    """Delete a document and purge vector chunks with strict ownership check.
 
     Args:
-        document_id: Unique document identifier (path param).
+        document_id: ID of document to delete.
+        current_user: Authenticated caller.
+        db: Scoped database session.
 
     Returns:
-        DocumentDeleteResponse: Confirmation with chunk deletion count.
+        DocumentDeleteResponse: Deletion confirmation.
 
     Raises:
-        HTTPException: 404 if document not found.
+        HTTPException: 404 if document does not exist or is not owned by current user.
     """
-    record = document_store.get_document(document_id)
-    if record is None:
+    stmt = select(Document).where(
+        Document.id == document_id,
+        Document.user_id == current_user.id,
+    )
+    result = await db.execute(stmt)
+    doc = result.scalar_one_or_none()
+
+    if doc is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Document '{document_id}' not found.",
         )
 
-    # Delete from vector store
+    # Delete vector chunks strictly matching document_id AND user_id
+    chunks_deleted = 0
     try:
         vector_store = ChromaVectorStore()
-        chunks_deleted = vector_store.delete_by_document(document_id)
+        chunks_deleted = vector_store.delete_by_document(
+            document_id=document_id, user_id=current_user.id
+        )
     except Exception as exc:
         logger.exception("Failed to delete vector chunks for document %s", document_id)
-        chunks_deleted = 0
 
-    # Remove from document store
+    # Delete from document store and DB
     document_store.delete_document(document_id)
+    await db.delete(doc)
+    await db.commit()
 
     return DocumentDeleteResponse(
         document_id=document_id,
-        filename=record.filename,
+        filename=doc.filename,
         chunks_deleted=chunks_deleted,
     )

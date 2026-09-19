@@ -288,11 +288,14 @@ class ChromaVectorStore(BaseVectorStore):
 
         return results
 
-    def delete_by_document(self, document_id: str) -> int:
-        """Purge all chunks associated with a document ID from ChromaDB.
+    def delete_by_document(
+        self, document_id: str, user_id: str | None = None
+    ) -> int:
+        """Purge all chunks associated with a document ID (and optional user ID) from ChromaDB.
 
         Args:
             document_id: ID of document whose chunks should be deleted.
+            user_id: Optional user ID to strictly isolate chunk deletion.
 
         Returns:
             int: Count of deleted chunks.
@@ -300,16 +303,23 @@ class ChromaVectorStore(BaseVectorStore):
         if not document_id:
             return 0
 
-        existing = self.collection.get(where={"document_id": document_id})
+        where_cond: dict[str, Any]
+        if user_id:
+            where_cond = {"$and": [{"document_id": document_id}, {"user_id": user_id}]}
+        else:
+            where_cond = {"document_id": document_id}
+
+        existing = self.collection.get(where=where_cond)
         existing_ids = existing.get("ids", [])
         count = len(existing_ids)
 
         if count > 0:
-            self.collection.delete(where={"document_id": document_id})
+            self.collection.delete(where=where_cond)
             logger.info(
-                "Deleted %d chunks for document_id=%s from collection %s",
+                "Deleted %d chunks for document_id=%s (user_id=%s) from collection %s",
                 count,
                 document_id,
+                user_id or "all",
                 self.collection_name,
             )
 

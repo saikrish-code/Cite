@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { DocumentItem, uploadDocument, deleteDocument } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
 interface UploadingFile {
   id: string;
@@ -39,6 +40,7 @@ export default function DocumentSidebar({
   onDocumentsChange,
   onCloseMobile,
 }: DocumentSidebarProps) {
+  const { token } = useAuth();
   const [isDragging, setIsDragging] = useState(false);
   const [uploadQueue, setUploadQueue] = useState<UploadingFile[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -103,7 +105,7 @@ export default function DocumentSidebar({
       setUploadQueue((prev) => [newUpload, ...prev]);
 
       try {
-        await uploadDocument(file, "anonymous", (progress) => {
+        await uploadDocument(file, token, (progress) => {
           setUploadQueue((prev) =>
             prev.map((item) =>
               item.id === tempId ? { ...item, progress } : item
@@ -143,7 +145,7 @@ export default function DocumentSidebar({
   const handleDelete = async (e: React.MouseEvent, docId: string) => {
     e.stopPropagation();
     try {
-      await deleteDocument(docId);
+      await deleteDocument(docId, token);
       if (selectedDocId === docId) {
         onSelectDoc(null);
       }

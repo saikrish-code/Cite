@@ -1,8 +1,8 @@
-"""Chat REST API endpoints with Server-Sent Events streaming.
+"""Chat REST API endpoints with Server-Sent Events streaming and user isolation.
 
 Provides:
-- POST /chat — Stream a RAG answer token-by-token via SSE, then send citations
-- GET /chat/history — Retrieve paginated chat history
+- POST /chat — Stream a user-isolated RAG answer token-by-token via SSE
+- GET /chat/history — Retrieve paginated chat history for the authenticated caller
 """
 
 from __future__ import annotations
@@ -10,13 +10,21 @@ from __future__ import annotations
 import json
 import logging
 from collections.abc import AsyncIterator
+from typing import Annotated, Any
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.dependencies import get_current_user
+from app.core.database import AsyncSessionLocal, get_db
+from app.models.chat import ChatMessage
+from app.models.document import Document
+from app.models.user import User
 from app.schemas.chat import ChatHistoryEntry, ChatRequest
 from app.services.document_store import chat_store
-from app.services.llm import MockLLMClient, get_llm_client
+from app.services.llm import get_llm_client
 from app.services.rag import RAGService
 from app.services.vector_store import ChromaVectorStore
 
@@ -25,17 +33,38 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+async def _save_chat_message_db(
+    user_id: str,
+    query: str,
+    answer: str,
+    citations: list[dict[str, Any]],
+    context_found: bool,
+    document_id: str | None = None,
+) -> None:
+    """Persist completed chat Q&A exchange to the database."""
+    try:
+        async with AsyncSessionLocal() as session:
+            msg = ChatMessage(
+                user_id=user_id,
+                document_id=document_id,
+                query=query,
+                answer=answer,
+                citations=citations,
+                context_found=context_found,
+            )
+            session.add(msg)
+            await session.commit()
+    except Exception as exc:
+        logger.exception("Failed to persist chat message in database: %s", exc)
+
+
 async def _sse_event_generator(
-    request: ChatRequest,
+    query: str,
+    user_id: str,
+    document_id: str | None = None,
+    k: int = 4,
 ) -> AsyncIterator[str]:
-    """Generate SSE-formatted events from the RAG streaming pipeline.
-
-    Produces events in the standard SSE format:
-        event: <event_type>
-        data: <json_payload>
-
-    Args:
-        request: Validated chat request payload.
+    """Generate SSE-formatted events strictly scoped to the user's vector embeddings.
 
     Yields:
         str: SSE-formatted event strings.
@@ -48,29 +77,47 @@ async def _sse_event_generator(
             llm_client=llm_client,
         )
 
-        user_id = request.user_id or "anonymous"
+        last_citations: list[dict[str, Any]] = []
+        last_context_found = True
 
         async for event_dict in rag_service.astream_answer(
-            query=request.query,
-            k=request.k,
-            document_id=request.document_id,
+            query=query,
+            k=k,
+            document_id=document_id,
             user_id=user_id,
         ):
             event_type = event_dict["event"]
             event_data = json.dumps(event_dict["data"])
             yield f"event: {event_type}\ndata: {event_data}\n\n"
 
-            # After done event, save to chat history
+            if event_type == "citations":
+                last_citations = event_dict["data"].get("citations", [])
+                last_context_found = event_dict["data"].get("context_found", True)
+
+            # After done event, save to DB and in-memory chat store
             if event_type == "done":
                 done_data = event_dict["data"]
-                # Collect citations from the previous event (stored temporarily)
+                final_answer = done_data.get("answer", "")
+                final_query = done_data.get("query", query)
+
+                # Persist in DB
+                await _save_chat_message_db(
+                    user_id=user_id,
+                    query=final_query,
+                    answer=final_answer,
+                    citations=last_citations,
+                    context_found=last_context_found,
+                    document_id=document_id,
+                )
+
+                # Update in-memory store
                 chat_store.add_entry(
-                    query=done_data.get("query", request.query),
-                    answer=done_data.get("answer", ""),
+                    query=final_query,
+                    answer=final_answer,
                 )
 
     except Exception as exc:
-        logger.exception("SSE streaming error for query: %s", request.query)
+        logger.exception("SSE streaming error for query: %s", query)
         error_data = json.dumps({"detail": str(exc)})
         yield f"event: error\ndata: {error_data}\n\n"
 
@@ -78,29 +125,40 @@ async def _sse_event_generator(
 @router.post(
     "",
     status_code=status.HTTP_200_OK,
-    summary="Chat with Documents (SSE Stream)",
+    summary="Chat with Documents (User-Isolated SSE Stream)",
     description=(
         "Submit a question and receive a streaming Server-Sent Events response. "
-        "Events are streamed in this order: multiple 'token' events (one per generated token), "
-        "then a single 'citations' event with resolved source references, "
-        "then a final 'done' event with the complete answer."
+        "Vector retrieval is strictly constrained to the authenticated user's documents."
     ),
     response_description="SSE stream with event types: token, citations, done, error",
 )
-async def chat_stream(request: ChatRequest) -> StreamingResponse:
-    """Stream a RAG answer using Server-Sent Events.
+async def chat_stream(
+    request: ChatRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> StreamingResponse:
+    """Stream a RAG answer isolated strictly to the authenticated caller."""
+    # If a specific document is requested, verify it belongs to current_user
+    if request.document_id:
+        stmt = select(Document).where(
+            Document.id == request.document_id,
+            Document.user_id == current_user.id,
+        )
+        res = await db.execute(stmt)
+        doc = res.scalar_one_or_none()
+        if doc is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Document '{request.document_id}' not found or unauthorized.",
+            )
 
-    The response streams token events as the LLM generates them, followed by
-    citations resolved from the accumulated answer, and finally a done event.
-
-    Args:
-        request: Chat request with query and optional filters.
-
-    Returns:
-        StreamingResponse: SSE event stream with content-type text/event-stream.
-    """
     return StreamingResponse(
-        content=_sse_event_generator(request),
+        content=_sse_event_generator(
+            query=request.query,
+            user_id=current_user.id,
+            document_id=request.document_id,
+            k=request.k,
+        ),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
@@ -115,19 +173,33 @@ async def chat_stream(request: ChatRequest) -> StreamingResponse:
     response_model=list[ChatHistoryEntry],
     status_code=status.HTTP_200_OK,
     summary="Chat History",
-    description="Retrieve paginated chat history entries, ordered by most recent first.",
+    description="Retrieve paginated chat history entries belonging exclusively to the caller.",
 )
 async def get_chat_history(
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
     limit: int = 20,
     offset: int = 0,
 ) -> list[ChatHistoryEntry]:
-    """Retrieve chat history with pagination.
+    """Retrieve user-scoped chat history with pagination."""
+    stmt = (
+        select(ChatMessage)
+        .where(ChatMessage.user_id == current_user.id)
+        .order_by(ChatMessage.created_at.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    result = await db.execute(stmt)
+    records = result.scalars().all()
 
-    Args:
-        limit: Maximum entries to return (query param, default 20).
-        offset: Number of entries to skip (query param, default 0).
-
-    Returns:
-        list[ChatHistoryEntry]: Paginated history entries.
-    """
-    return chat_store.list_entries(limit=limit, offset=offset)
+    return [
+        ChatHistoryEntry(
+            id=r.id,
+            query=r.query,
+            answer=r.answer,
+            citations=r.citations,
+            context_found=r.context_found,
+            created_at=r.created_at,
+        )
+        for r in records
+    ]

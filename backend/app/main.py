@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.endpoints.health import check_health
 from app.api.v1.router import api_router
+from app.core.database import init_db
 from app.core.config import settings
 from app.schemas.health import HealthResponse
 
@@ -22,7 +23,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     Yields:
         None: Continues execution while the application is active.
     """
-    # Startup actions (e.g. database connection pool verification, model warmup)
+    # Startup actions: verify and initialize database tables
+    await init_db()
     yield
     # Shutdown actions (e.g. closing connection pools, flushing telemetry)
 
