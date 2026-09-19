@@ -1,6 +1,8 @@
-"""Pydantic schemas for RAG chat and citation payloads."""
+"""Pydantic schemas for RAG chat, citations, SSE events, and chat history."""
 
 from __future__ import annotations
+
+from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -63,4 +65,87 @@ class RAGResponse(BaseModel):
     context_found: bool = Field(
         default=True,
         description="False if the model indicated insufficient context or answered 'I don't know'",
+    )
+
+
+# ---------------------------------------------------------------------------
+# SSE (Server-Sent Events) schemas for streaming chat
+# ---------------------------------------------------------------------------
+
+
+class ChatRequest(BaseModel):
+    """Request payload for the streaming SSE chat endpoint."""
+
+    model_config = ConfigDict(frozen=True)
+
+    query: str = Field(
+        ..., min_length=1, description="Natural language question to answer"
+    )
+    k: int = Field(
+        default=4, ge=1, le=20, description="Number of context passages to retrieve"
+    )
+    document_id: str | None = Field(
+        default=None, description="Optional document ID to scope retrieval"
+    )
+    user_id: str | None = Field(
+        default=None,
+        description="Optional user ID for multi-tenant isolation (defaults to 'anonymous')",
+    )
+
+
+class ChatSSETokenEvent(BaseModel):
+    """SSE data payload for a single streamed token."""
+
+    model_config = ConfigDict(frozen=True)
+
+    token: str = Field(..., description="Single token or text fragment from the LLM")
+
+
+class ChatSSECitationsEvent(BaseModel):
+    """SSE data payload containing resolved citations after streaming completes."""
+
+    model_config = ConfigDict(frozen=True)
+
+    citations: list[Citation] = Field(
+        default_factory=list,
+        description="Resolved source citations extracted from the streamed answer",
+    )
+    context_found: bool = Field(
+        default=True,
+        description="False if the model indicated insufficient context",
+    )
+
+
+class ChatSSEDoneEvent(BaseModel):
+    """SSE data payload signalling the end of the streaming response."""
+
+    model_config = ConfigDict(frozen=True)
+
+    query: str = Field(..., description="Original user query")
+    answer: str = Field(..., description="Full accumulated answer text")
+
+
+class ChatSSEErrorEvent(BaseModel):
+    """SSE data payload for error conditions during streaming."""
+
+    model_config = ConfigDict(frozen=True)
+
+    detail: str = Field(..., description="Human-readable error description")
+
+
+class ChatHistoryEntry(BaseModel):
+    """Persisted record of a completed chat Q&A exchange."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str = Field(..., description="Unique identifier for this chat entry")
+    query: str = Field(..., description="User question")
+    answer: str = Field(..., description="Model-generated answer")
+    citations: list[Citation] = Field(
+        default_factory=list, description="Resolved citations"
+    )
+    context_found: bool = Field(default=True, description="Whether context was found")
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        description="UTC timestamp of the exchange",
     )

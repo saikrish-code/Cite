@@ -41,6 +41,32 @@ class Settings(BaseSettings):
             origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()
         ]
 
+    # File Upload Limits
+    MAX_UPLOAD_SIZE_MB: int = 50
+    ALLOWED_UPLOAD_EXTENSIONS: str = ".pdf,.docx,.txt"
+
+    @property
+    def allowed_extensions_set(self) -> set[str]:
+        """Convert comma-separated ALLOWED_UPLOAD_EXTENSIONS into a set of lowercase extensions.
+
+        Returns:
+            set[str]: Set of allowed file extensions (e.g. {'.pdf', '.docx', '.txt'}).
+        """
+        return {
+            ext.strip().lower()
+            for ext in self.ALLOWED_UPLOAD_EXTENSIONS.split(",")
+            if ext.strip()
+        }
+
+    @property
+    def max_upload_bytes(self) -> int:
+        """Convert MAX_UPLOAD_SIZE_MB to bytes.
+
+        Returns:
+            int: Maximum upload size in bytes.
+        """
+        return self.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+
     # Security
     JWT_SECRET_KEY: str = Field(
         default="default-insecure-dev-key-change-in-production-1234567890",

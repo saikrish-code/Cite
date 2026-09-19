@@ -6,12 +6,14 @@ Orchestrates:
 3. Answer generation via BaseLLMClient (OpenAI, Claude, Ollama, or Mock)
 4. Inline citation parsing and structured provenance resolution into Citation schemas
 5. "I don't know" handling when context is missing or insufficient
+6. Streaming token-by-token generation with post-stream citation resolution
 """
 
 from __future__ import annotations
 
 import logging
 import re
+from collections.abc import AsyncIterator
 from typing import Any
 
 from app.schemas.chat import Citation, RAGResponse
@@ -293,3 +295,115 @@ class RAGService:
             citations=citations,
             context_found=True,
         )
+
+    async def astream_answer(
+        self,
+        query: str,
+        k: int = 4,
+        filters: dict[str, Any] | None = None,
+        document_id: str | None = None,
+        user_id: str | None = None,
+    ) -> AsyncIterator[dict[str, Any]]:
+        """Stream RAG answer token-by-token, then yield citations as final events.
+
+        Yields dictionaries with an ``event`` key indicating the event type:
+        - ``{"event": "token", "data": {"token": "..."}}`` — individual token
+        - ``{"event": "citations", "data": {"citations": [...], "context_found": bool}}``
+        - ``{"event": "done", "data": {"query": "...", "answer": "..."}}``
+        - ``{"event": "error", "data": {"detail": "..."}}`` — on exception
+
+        Args:
+            query: Question to answer.
+            k: Number of context passages to retrieve.
+            filters: Optional metadata filters.
+            document_id: Optional document scope filter.
+            user_id: Optional user multi-tenancy filter.
+
+        Yields:
+            dict[str, Any]: SSE-compatible event dictionaries.
+        """
+        cleaned_query = query.strip()
+        if not cleaned_query:
+            yield {
+                "event": "token",
+                "data": {"token": "I don't know based on the provided context."},
+            }
+            yield {
+                "event": "citations",
+                "data": {"citations": [], "context_found": False},
+            }
+            yield {
+                "event": "done",
+                "data": {
+                    "query": query,
+                    "answer": "I don't know based on the provided context.",
+                },
+            }
+            return
+
+        # Retrieve context
+        merged_filters = self._resolve_filters(filters, document_id, user_id)
+        search_results = self.vector_store.similarity_search(
+            query=cleaned_query,
+            k=k,
+            filters=merged_filters,
+        )
+
+        if not search_results:
+            no_context_answer = "I don't know based on the provided context."
+            yield {"event": "token", "data": {"token": no_context_answer}}
+            yield {
+                "event": "citations",
+                "data": {"citations": [], "context_found": False},
+            }
+            yield {
+                "event": "done",
+                "data": {"query": cleaned_query, "answer": no_context_answer},
+            }
+            return
+
+        # Build prompt and stream LLM
+        user_prompt, source_map = self._build_context_and_prompt(
+            cleaned_query, search_results
+        )
+
+        accumulated_answer = ""
+        try:
+            async for token in self.llm_client.astream_generate(
+                prompt=user_prompt,
+                system_prompt=self.system_prompt,
+            ):
+                accumulated_answer += token
+                yield {"event": "token", "data": {"token": token}}
+        except Exception as exc:
+            logger.exception("Error during LLM streaming for query: %s", cleaned_query)
+            yield {"event": "error", "data": {"detail": str(exc)}}
+            return
+
+        # Post-stream: parse citations from full answer
+        accumulated_answer = accumulated_answer.strip()
+        is_unknown = any(
+            phrase in accumulated_answer.lower() for phrase in UNKNOWN_PHRASES
+        )
+
+        if is_unknown:
+            citations: list[Citation] = []
+            context_found = False
+        else:
+            citations = self._parse_citations(accumulated_answer, source_map)
+            context_found = True
+
+        # Yield citations event
+        yield {
+            "event": "citations",
+            "data": {
+                "citations": [c.model_dump() for c in citations],
+                "context_found": context_found,
+            },
+        }
+
+        # Yield done event
+        yield {
+            "event": "done",
+            "data": {"query": cleaned_query, "answer": accumulated_answer},
+        }

@@ -1,4 +1,11 @@
 from app.services.chunker import BaseChunker, RecursiveTokenChunker
+from app.services.document_store import (
+    DocumentRecord,
+    InMemoryChatStore,
+    InMemoryDocumentStore,
+    chat_store,
+    document_store,
+)
 from app.services.embeddings import (
     BaseEmbeddingService,
     SentenceTransformerEmbeddingService,
@@ -31,6 +38,9 @@ __all__ = [
     "ChromaVectorStore",
     "ClaudeLLMClient",
     "DOCXParser",
+    "DocumentRecord",
+    "InMemoryChatStore",
+    "InMemoryDocumentStore",
     "IngestionService",
     "MockLLMClient",
     "OllamaLLMClient",
@@ -40,6 +50,8 @@ __all__ = [
     "RecursiveTokenChunker",
     "SentenceTransformerEmbeddingService",
     "TXTParser",
+    "chat_store",
+    "document_store",
     "get_llm_client",
     "get_parser",
 ]

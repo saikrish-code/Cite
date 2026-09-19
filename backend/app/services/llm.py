@@ -5,12 +5,16 @@ Supports:
 - Anthropic Claude API (Claude 3.5 Sonnet, Haiku, etc.)
 - Ollama (local open-source models via REST API)
 - MockLLMClient for deterministic unit/integration testing
+
+Each client provides synchronous `generate`, asynchronous `agenerate`, and
+streaming `astream_generate` methods.
 """
 
 from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterator
 from typing import Any
 
 from app.core.config import settings
@@ -65,6 +69,31 @@ class BaseLLMClient(ABC):
         Returns:
             str: Generated text response.
         """
+
+    @abstractmethod
+    async def astream_generate(
+        self,
+        prompt: str,
+        system_prompt: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+    ) -> AsyncIterator[str]:
+        """Stream text completion tokens asynchronously.
+
+        Yields individual tokens or text fragments as the LLM produces them.
+
+        Args:
+            prompt: User prompt or main task instructions.
+            system_prompt: Optional system persona and grounding instructions.
+            temperature: Sampling temperature (0.0 = deterministic).
+            max_tokens: Maximum tokens in response.
+
+        Yields:
+            str: Individual token or text fragment.
+        """
+        # This yield is needed to make Python recognize this as an async generator
+        # in the abstract base class. Concrete implementations override entirely.
+        yield ""  # pragma: no cover
 
 
 class OpenAILLMClient(BaseLLMClient):
@@ -162,6 +191,33 @@ class OpenAILLMClient(BaseLLMClient):
             max_tokens=tokens,
         )
         return str(response.choices[0].message.content or "")
+
+    async def astream_generate(
+        self,
+        prompt: str,
+        system_prompt: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+    ) -> AsyncIterator[str]:
+        """Stream tokens from OpenAI's chat completions API.
+
+        Uses ``stream=True`` and async iteration over the response chunks.
+        """
+        client = self._get_async_client()
+        messages = self._build_messages(prompt, system_prompt)
+        temp = temperature if temperature is not None else settings.LLM_TEMPERATURE
+        tokens = max_tokens or settings.LLM_MAX_TOKENS
+
+        stream = await client.chat.completions.create(
+            model=self.model,
+            messages=messages,
+            temperature=temp,
+            max_tokens=tokens,
+            stream=True,
+        )
+        async for chunk in stream:
+            if chunk.choices and chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
 
 
 class ClaudeLLMClient(BaseLLMClient):
@@ -263,6 +319,37 @@ class ClaudeLLMClient(BaseLLMClient):
             return str(blocks[0].text)
         return ""
 
+    async def astream_generate(
+        self,
+        prompt: str,
+        system_prompt: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+    ) -> AsyncIterator[str]:
+        """Stream tokens from the Anthropic Claude API.
+
+        Uses ``stream=True`` and the ``content_block_delta`` event type to
+        extract individual text deltas.
+        """
+        client = self._get_async_client()
+        temp = temperature if temperature is not None else settings.LLM_TEMPERATURE
+        tokens = max_tokens or settings.LLM_MAX_TOKENS
+
+        kwargs: dict[str, Any] = {
+            "model": self.model,
+            "max_tokens": tokens,
+            "temperature": temp,
+            "messages": [{"role": "user", "content": prompt}],
+            "stream": True,
+        }
+        if system_prompt:
+            kwargs["system"] = system_prompt
+
+        stream = await client.messages.create(**kwargs)
+        async for event in stream:
+            if event.type == "content_block_delta" and hasattr(event.delta, "text"):
+                yield event.delta.text
+
 
 class OllamaLLMClient(BaseLLMClient):
     """Local Ollama REST API client implementation."""
@@ -287,6 +374,7 @@ class OllamaLLMClient(BaseLLMClient):
         system_prompt: str | None,
         temperature: float | None,
         max_tokens: int | None,
+        stream: bool = False,
     ) -> dict[str, Any]:
         messages: list[dict[str, str]] = []
         if system_prompt:
@@ -304,7 +392,7 @@ class OllamaLLMClient(BaseLLMClient):
         return {
             "model": self.model,
             "messages": messages,
-            "stream": False,
+            "stream": stream,
             "options": options,
         }
 
@@ -343,6 +431,42 @@ class OllamaLLMClient(BaseLLMClient):
             resp.raise_for_status()
             data = resp.json()
             return str(data.get("message", {}).get("content", ""))
+
+    async def astream_generate(
+        self,
+        prompt: str,
+        system_prompt: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+    ) -> AsyncIterator[str]:
+        """Stream tokens from the Ollama REST API.
+
+        Sends ``stream: true`` and iterates over NDJSON response lines,
+        extracting the ``message.content`` field from each chunk.
+        """
+        import json
+
+        import httpx
+
+        url = f"{self.base_url}/api/chat"
+        payload = self._build_payload(
+            prompt, system_prompt, temperature, max_tokens, stream=True
+        )
+
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            async with client.stream("POST", url, json=payload) as resp:
+                resp.raise_for_status()
+                async for line in resp.aiter_lines():
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        chunk = json.loads(line)
+                        content = chunk.get("message", {}).get("content", "")
+                        if content:
+                            yield content
+                    except json.JSONDecodeError:
+                        continue
 
 
 class MockLLMClient(BaseLLMClient):
@@ -403,6 +527,27 @@ class MockLLMClient(BaseLLMClient):
         return self._record_and_get_response(
             prompt, system_prompt, temperature, max_tokens
         )
+
+    async def astream_generate(
+        self,
+        prompt: str,
+        system_prompt: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+    ) -> AsyncIterator[str]:
+        """Stream tokens by yielding individual words from the mock response.
+
+        Records the call in history then yields the response word-by-word,
+        simulating realistic token-by-token LLM behavior.
+        """
+        full_response = self._record_and_get_response(
+            prompt, system_prompt, temperature, max_tokens
+        )
+        words = full_response.split(" ")
+        for i, word in enumerate(words):
+            if i > 0:
+                yield " "
+            yield word
 
 
 def get_llm_client(provider: str | None = None, **kwargs: Any) -> BaseLLMClient:
