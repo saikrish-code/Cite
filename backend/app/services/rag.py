@@ -16,8 +16,9 @@ import re
 from collections.abc import AsyncIterator
 from typing import Any
 
-from app.schemas.chat import Citation, RAGResponse
+from app.schemas.chat import Citation, RAGResponse, RetrievalMetrics
 from app.schemas.document import VectorSearchResult
+from app.services.hybrid_retriever import HybridRetriever
 from app.services.llm import BaseLLMClient, get_llm_client
 from app.services.vector_store import BaseVectorStore, ChromaVectorStore
 
@@ -49,6 +50,7 @@ class RAGService:
         vector_store: Vector store used for semantic similarity search. Defaults to ChromaVectorStore.
         llm_client: LLM client used for grounded answer synthesis. Defaults to get_llm_client().
         system_prompt: Custom system prompt instructions. Defaults to STRICT_RAG_SYSTEM_PROMPT.
+        retriever: Multi-stage hybrid retriever. Defaults to HybridRetriever(vector_store=vector_store).
     """
 
     def __init__(
@@ -56,10 +58,12 @@ class RAGService:
         vector_store: BaseVectorStore | None = None,
         llm_client: BaseLLMClient | None = None,
         system_prompt: str = STRICT_RAG_SYSTEM_PROMPT,
+        retriever: HybridRetriever | None = None,
     ) -> None:
         self.vector_store = vector_store or ChromaVectorStore()
         self.llm_client = llm_client or get_llm_client()
         self.system_prompt = system_prompt
+        self.retriever = retriever or HybridRetriever(vector_store=self.vector_store)
 
     def _build_context_and_prompt(
         self, query: str, search_results: list[VectorSearchResult]
@@ -159,6 +163,7 @@ class RAGService:
         filters: dict[str, Any] | None = None,
         document_id: str | None = None,
         user_id: str | None = None,
+        retrieval_mode: str | None = None,
     ) -> RAGResponse:
         """Synchronously retrieve context, prompt LLM, and return structured grounded response.
 
@@ -168,9 +173,10 @@ class RAGService:
             filters: Optional metadata filters.
             document_id: Optional document scope filter.
             user_id: Optional user multi-tenancy filter.
+            retrieval_mode: Optional retrieval mode override ("vector_only", "hybrid", "hybrid_rerank").
 
         Returns:
-            RAGResponse: Structured answer with resolved citations.
+            RAGResponse: Structured answer with resolved citations and stage latency metrics.
         """
         cleaned_query = query.strip()
         if not cleaned_query:
@@ -182,11 +188,14 @@ class RAGService:
             )
 
         merged_filters = self._resolve_filters(filters, document_id, user_id)
-        search_results = self.vector_store.similarity_search(
+        search_results, metrics = self.retriever.retrieve(
             query=cleaned_query,
             k=k,
             filters=merged_filters,
+            mode=retrieval_mode,
         )
+
+        metrics_schema = RetrievalMetrics(**metrics.to_dict())
 
         if not search_results:
             return RAGResponse(
@@ -194,6 +203,7 @@ class RAGService:
                 answer="I don't know based on the provided context.",
                 citations=[],
                 context_found=False,
+                retrieval_metrics=metrics_schema,
             )
 
         user_prompt, source_map = self._build_context_and_prompt(
@@ -212,6 +222,7 @@ class RAGService:
                 answer=raw_answer,
                 citations=[],
                 context_found=False,
+                retrieval_metrics=metrics_schema,
             )
 
         citations = self._parse_citations(raw_answer, source_map)
@@ -221,6 +232,7 @@ class RAGService:
             answer=raw_answer,
             citations=citations,
             context_found=True,
+            retrieval_metrics=metrics_schema,
         )
 
     async def aanswer(
@@ -230,6 +242,7 @@ class RAGService:
         filters: dict[str, Any] | None = None,
         document_id: str | None = None,
         user_id: str | None = None,
+        retrieval_mode: str | None = None,
     ) -> RAGResponse:
         """Asynchronously retrieve context, prompt LLM, and return structured grounded response.
 
@@ -239,9 +252,10 @@ class RAGService:
             filters: Optional metadata filters.
             document_id: Optional document scope filter.
             user_id: Optional user multi-tenancy filter.
+            retrieval_mode: Optional retrieval mode override ("vector_only", "hybrid", "hybrid_rerank").
 
         Returns:
-            RAGResponse: Structured answer with resolved citations.
+            RAGResponse: Structured answer with resolved citations and stage latency metrics.
         """
         cleaned_query = query.strip()
         if not cleaned_query:
@@ -253,11 +267,14 @@ class RAGService:
             )
 
         merged_filters = self._resolve_filters(filters, document_id, user_id)
-        search_results = self.vector_store.similarity_search(
+        search_results, metrics = await self.retriever.aretrieve(
             query=cleaned_query,
             k=k,
             filters=merged_filters,
+            mode=retrieval_mode,
         )
+
+        metrics_schema = RetrievalMetrics(**metrics.to_dict())
 
         if not search_results:
             return RAGResponse(
@@ -265,6 +282,7 @@ class RAGService:
                 answer="I don't know based on the provided context.",
                 citations=[],
                 context_found=False,
+                retrieval_metrics=metrics_schema,
             )
 
         user_prompt, source_map = self._build_context_and_prompt(
@@ -285,6 +303,7 @@ class RAGService:
                 answer=raw_answer,
                 citations=[],
                 context_found=False,
+                retrieval_metrics=metrics_schema,
             )
 
         citations = self._parse_citations(raw_answer, source_map)
@@ -294,6 +313,7 @@ class RAGService:
             answer=raw_answer,
             citations=citations,
             context_found=True,
+            retrieval_metrics=metrics_schema,
         )
 
     async def astream_answer(
@@ -303,12 +323,13 @@ class RAGService:
         filters: dict[str, Any] | None = None,
         document_id: str | None = None,
         user_id: str | None = None,
+        retrieval_mode: str | None = None,
     ) -> AsyncIterator[dict[str, Any]]:
         """Stream RAG answer token-by-token, then yield citations as final events.
 
         Yields dictionaries with an ``event`` key indicating the event type:
         - ``{"event": "token", "data": {"token": "..."}}`` — individual token
-        - ``{"event": "citations", "data": {"citations": [...], "context_found": bool}}``
+        - ``{"event": "citations", "data": {"citations": [...], "context_found": bool, "retrieval_metrics": {...}}}``
         - ``{"event": "done", "data": {"query": "...", "answer": "..."}}``
         - ``{"event": "error", "data": {"detail": "..."}}`` — on exception
 
@@ -318,6 +339,7 @@ class RAGService:
             filters: Optional metadata filters.
             document_id: Optional document scope filter.
             user_id: Optional user multi-tenancy filter.
+            retrieval_mode: Optional retrieval mode override ("vector_only", "hybrid", "hybrid_rerank").
 
         Yields:
             dict[str, Any]: SSE-compatible event dictionaries.
@@ -341,12 +363,13 @@ class RAGService:
             }
             return
 
-        # Retrieve context
+        # Retrieve context via multi-stage hybrid retriever
         merged_filters = self._resolve_filters(filters, document_id, user_id)
-        search_results = self.vector_store.similarity_search(
+        search_results, metrics = await self.retriever.aretrieve(
             query=cleaned_query,
             k=k,
             filters=merged_filters,
+            mode=retrieval_mode,
         )
 
         if not search_results:
@@ -354,7 +377,11 @@ class RAGService:
             yield {"event": "token", "data": {"token": no_context_answer}}
             yield {
                 "event": "citations",
-                "data": {"citations": [], "context_found": False},
+                "data": {
+                    "citations": [],
+                    "context_found": False,
+                    "retrieval_metrics": metrics.to_dict(),
+                },
             }
             yield {
                 "event": "done",
@@ -393,12 +420,13 @@ class RAGService:
             citations = self._parse_citations(accumulated_answer, source_map)
             context_found = True
 
-        # Yield citations event
+        # Yield citations event with stage latency metrics
         yield {
             "event": "citations",
             "data": {
                 "citations": [c.model_dump() for c in citations],
                 "context_found": context_found,
+                "retrieval_metrics": metrics.to_dict(),
             },
         }
 
@@ -407,3 +435,4 @@ class RAGService:
             "event": "done",
             "data": {"query": cleaned_query, "answer": accumulated_answer},
         }
+

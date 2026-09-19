@@ -63,11 +63,12 @@ async def _sse_event_generator(
     user_id: str,
     document_id: str | None = None,
     k: int = 4,
+    retrieval_mode: str | None = None,
 ) -> AsyncIterator[str]:
-    """Generate SSE-formatted events strictly scoped to the user's vector embeddings.
+    """Generate SSE-formatted events from RAG answer stream.
 
-    Yields:
-        str: SSE-formatted event strings.
+    Yields raw SSE strings formatted as:
+    ``event: {type}\ndata: {json}\n\n``
     """
     try:
         llm_client = get_llm_client()
@@ -76,7 +77,6 @@ async def _sse_event_generator(
             vector_store=vector_store,
             llm_client=llm_client,
         )
-
         last_citations: list[dict[str, Any]] = []
         last_context_found = True
 
@@ -85,6 +85,7 @@ async def _sse_event_generator(
             k=k,
             document_id=document_id,
             user_id=user_id,
+            retrieval_mode=retrieval_mode,
         ):
             event_type = event_dict["event"]
             event_data = json.dumps(event_dict["data"])
@@ -158,6 +159,7 @@ async def chat_stream(
             user_id=current_user.id,
             document_id=request.document_id,
             k=request.k,
+            retrieval_mode=request.retrieval_mode,
         ),
         media_type="text/event-stream",
         headers={

@@ -11,14 +11,17 @@ import {
   AlertTriangle,
   Sparkles,
   ExternalLink,
+  Zap,
+  Activity,
 } from "lucide-react";
-import { Citation } from "@/lib/api";
+import { Citation, RetrievalMetrics } from "@/lib/api";
 
 export interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
   citations?: Citation[];
+  retrievalMetrics?: RetrievalMetrics | null;
   contextFound?: boolean;
   isStreaming?: boolean;
   error?: string;
@@ -254,6 +257,74 @@ export default function ChatMessage({
               </div>
             </div>
           )}
+
+          {/* Retrieval stage latency benchmarking badge for assistant */}
+          {isAssistant && message.retrievalMetrics && (() => {
+            const m = message.retrievalMetrics;
+            const modeStr = (m.mode || m.retrieval_mode || "hybrid_rerank").replace(/_/g, " + ");
+            const totalMs = m.total_ms ?? m.total_retrieval_ms ?? 0;
+            const vectorMs = m.vector_ms ?? m.vector_latency_ms ?? 0;
+            const bm25Ms = m.bm25_ms ?? m.bm25_latency_ms;
+            const rrfMs = m.rrf_ms ?? m.rrf_latency_ms;
+            const rerankMs = m.rerank_ms ?? m.rerank_latency_ms;
+
+            return (
+              <div className="mt-2.5 pt-2 border-t border-slate-800/60 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
+                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-indigo-950/70 border border-indigo-800/50 text-indigo-300 font-mono text-[10px]">
+                  <Zap className="h-3 w-3 text-indigo-400" />
+                  <span className="font-semibold uppercase tracking-wider">
+                    {modeStr}
+                  </span>
+                  <span className="text-slate-500">|</span>
+                  <span className="text-slate-200">
+                    {totalMs.toFixed(1)}ms total
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[10px] text-slate-400">
+                  <span>
+                    Vector:{" "}
+                    <strong className="text-slate-200">
+                      {vectorMs.toFixed(1)}ms
+                    </strong>
+                  </span>
+                  {bm25Ms != null && (
+                    <>
+                      <span className="text-slate-600">•</span>
+                      <span>
+                        BM25:{" "}
+                        <strong className="text-slate-200">
+                          {bm25Ms.toFixed(1)}ms
+                        </strong>
+                      </span>
+                    </>
+                  )}
+                  {rrfMs != null && (
+                    <>
+                      <span className="text-slate-600">•</span>
+                      <span>
+                        RRF:{" "}
+                        <strong className="text-slate-200">
+                          {rrfMs.toFixed(1)}ms
+                        </strong>
+                      </span>
+                    </>
+                  )}
+                  {rerankMs != null && (
+                    <>
+                      <span className="text-slate-600">•</span>
+                      <span>
+                        Reranker:{" "}
+                        <strong className="text-emerald-400">
+                          {rerankMs.toFixed(1)}ms
+                        </strong>
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
     </div>

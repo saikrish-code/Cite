@@ -65,14 +65,28 @@ class BaseVectorStore(ABC):
         """
 
     @abstractmethod
-    def delete_by_document(self, document_id: str) -> int:
+    def delete_by_document(self, document_id: str, user_id: str | None = None) -> int:
         """Delete all indexed chunks belonging to a specific document.
 
         Args:
             document_id: Unique identifier of the document to delete.
+            user_id: Optional user identifier for scoped deletion.
 
         Returns:
             int: Number of chunks removed.
+        """
+
+    @abstractmethod
+    def get_chunks(
+        self, filters: dict[str, Any] | None = None
+    ) -> list[VectorSearchResult]:
+        """Retrieve indexed chunks and their metadata matching the filter.
+
+        Args:
+            filters: Optional metadata filters (e.g. {'user_id': 'u1', 'document_id': 'd1'}).
+
+        Returns:
+            list[VectorSearchResult]: All chunks matching the filter criteria.
         """
 
 
@@ -324,3 +338,47 @@ class ChromaVectorStore(BaseVectorStore):
             )
 
         return count
+
+    def get_chunks(
+        self, filters: dict[str, Any] | None = None
+    ) -> list[VectorSearchResult]:
+        """Fetch all chunks and provenance metadata matching filters from ChromaDB.
+
+        Used to extract the candidate corpus for lexical BM25 indexing and keyword search,
+        strictly scoped by metadata filters (e.g. user_id, document_id).
+
+        Args:
+            filters: Optional metadata filters (e.g. {'user_id': 'u1'}).
+
+        Returns:
+            list[VectorSearchResult]: List of matching chunks with metadata and text.
+        """
+        where_clause = self._build_where_clause(filters)
+        kwargs: dict[str, Any] = {"include": ["documents", "metadatas"]}
+        if where_clause:
+            kwargs["where"] = where_clause
+
+        data = self.collection.get(**kwargs)
+        ids = data.get("ids") or []
+        docs = data.get("documents") or []
+        metas = data.get("metadatas") or []
+
+        results: list[VectorSearchResult] = []
+        for chunk_id, text, meta in zip(ids, docs, metas):
+            meta_dict = dict(meta or {})
+            chunk_meta = VectorChunkMetadata(
+                document_id=str(meta_dict.get("document_id", "")),
+                user_id=str(meta_dict.get("user_id", "")),
+                filename=str(meta_dict.get("filename", "")),
+                page=int(meta_dict.get("page", 1)),
+                chunk_index=int(meta_dict.get("chunk_index", 0)),
+            )
+            results.append(
+                VectorSearchResult(
+                    chunk_id=chunk_id,
+                    text=text or "",
+                    metadata=chunk_meta,
+                    score=1.0,
+                )
+            )
+        return results

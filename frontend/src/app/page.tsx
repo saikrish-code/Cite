@@ -50,6 +50,7 @@ export default function Home() {
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [retrievalMode, setRetrievalMode] = useState<"vector_only" | "hybrid" | "hybrid_rerank">("hybrid_rerank");
   const [activeCitation, setActiveCitation] = useState<Citation | null>(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [backendConnected, setBackendConnected] = useState<boolean | null>(null);
@@ -161,6 +162,7 @@ export default function Home() {
         query: queryText,
         document_id: selectedDocId,
         k: 4,
+        retrieval_mode: retrievalMode,
       },
       {
         onToken: (tok) => {
@@ -173,11 +175,11 @@ export default function Home() {
             )
           );
         },
-        onCitations: (citations, contextFound) => {
+        onCitations: (citations, contextFound, retrievalMetrics) => {
           setMessages((prev) =>
             prev.map((m) =>
               m.id === assistantMessageId
-                ? { ...m, citations, contextFound }
+                ? { ...m, citations, contextFound, retrievalMetrics }
                 : m
             )
           );
@@ -323,6 +325,62 @@ export default function Home() {
 
           {/* Right Header Actions */}
           <div className="flex items-center gap-2.5">
+            {/* Retrieval Mode Benchmark Switcher */}
+            <div className="hidden lg:flex items-center bg-slate-800/80 border border-slate-700/60 rounded-lg p-0.5 text-xs shadow-inner">
+              <button
+                onClick={() => setRetrievalMode("hybrid_rerank")}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all font-medium text-[11px] ${
+                  retrievalMode === "hybrid_rerank"
+                    ? "bg-indigo-600 text-white shadow-xs font-semibold"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+                title="Hybrid BM25 + Vector Search with Cross-Encoder Reranking"
+              >
+                <Sparkles className="h-3 w-3 text-indigo-200" />
+                <span>Hybrid + Rerank</span>
+              </button>
+              <button
+                onClick={() => setRetrievalMode("hybrid")}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition-all font-medium text-[11px] ${
+                  retrievalMode === "hybrid"
+                    ? "bg-indigo-600 text-white shadow-xs font-semibold"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+                title="Hybrid BM25 + Dense Vector Search merged via RRF"
+              >
+                <span>Hybrid (RRF)</span>
+              </button>
+              <button
+                onClick={() => setRetrievalMode("vector_only")}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition-all font-medium text-[11px] ${
+                  retrievalMode === "vector_only"
+                    ? "bg-indigo-600 text-white shadow-xs font-semibold"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+                title="Dense Vector embeddings only"
+              >
+                <span>Vector Only</span>
+              </button>
+            </div>
+
+            {/* Mobile / Compact Mode Selector */}
+            <div className="lg:hidden flex items-center">
+              <select
+                value={retrievalMode}
+                onChange={(e) =>
+                  setRetrievalMode(
+                    e.target.value as "vector_only" | "hybrid" | "hybrid_rerank"
+                  )
+                }
+                className="bg-slate-850 border border-slate-700 text-[11px] text-slate-200 rounded-lg px-2 py-1 outline-hidden"
+                title="Select retrieval pipeline"
+              >
+                <option value="hybrid_rerank">⚡ Hybrid + Rerank</option>
+                <option value="hybrid">🔀 Hybrid (RRF)</option>
+                <option value="vector_only">🎯 Vector Only</option>
+              </select>
+            </div>
+
             {/* Backend status indicator */}
             <div
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-850 border border-slate-800 text-[11px]"

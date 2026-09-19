@@ -8,8 +8,13 @@ thread-offloaded async methods, batching, and embedding normalization.
 from __future__ import annotations
 
 import asyncio
+import sys
 from abc import ABC, abstractmethod
 from typing import Any
+
+# Prevent broken torchcodec from attempting to load non-existent ffmpeg dlls on Windows/Python 3.14
+if "torchcodec" not in sys.modules:
+    sys.modules["torchcodec"] = None
 
 from app.core.config import settings
 

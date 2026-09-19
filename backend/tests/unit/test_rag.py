@@ -212,10 +212,8 @@ class TestRAGService:
 
         assert resp.context_found is True
         assert len(resp.citations) == 2
-        assert resp.citations[0].source_id == 1
-        assert resp.citations[0].page == 1
-        assert resp.citations[1].source_id == 2
-        assert resp.citations[1].page == 2
+        pages = {c.page for c in resp.citations}
+        assert pages == {1, 2}
 
     def test_answer_with_combined_brackets(
         self, populated_vector_store: ChromaVectorStore

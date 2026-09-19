@@ -221,64 +221,67 @@ To maintain a professional codebase that impresses senior engineers and hiring m
 ## 6. Feature Roadmap & Implementation Milestones
 
 ### Milestone 1: Document Ingestion Pipeline
-- [ ] **PDF Parser Service (`services/ingestion/parser.py`):**
+- [x] **PDF Parser Service (`services/parsers.py`):**
   - Extract text while preserving page numbers, section headers, and reading order.
   - Filter headers, footers, page numbers, and artifact characters.
   - Retain structured metadata (Paper Title, Authors, Abstract, Page Count).
-- [ ] **Recursive Semantic Chunker (`services/ingestion/chunker.py`):**
-  - Implement token-aware hierarchical chunking (e.g., 512 tokens with 64-token overlap).
+- [x] **Recursive Semantic Chunker (`services/chunking.py`):**
+  - Implement token-aware hierarchical chunking (e.g., 800 tokens with 100-token overlap).
   - Respect natural paragraph and section boundaries to avoid splitting equations or theorem definitions.
-  - Attach rich metadata to every chunk: `chunk_id`, `doc_id`, `page_number`, `section_title`, `char_start`, `char_end`.
-- [ ] **Batch Embedding Generation:**
-  - Leverage `sentence-transformers` with batched tensor inference.
+  - Attach rich metadata to every chunk: `chunk_id`, `doc_id`, `page_number`, `chunk_index`.
+- [x] **Batch Embedding Generation:**
+  - Leverage `sentence-transformers` with batched tensor inference (`bge-small-en-v1.5`).
   - Run embedding generation in background threads to maintain API responsiveness.
 
 ### Milestone 2: Vector Storage & Baseline Retrieval
-- [ ] **ChromaDB Integration (`services/retrieval/vector_store.py`):**
+- [x] **ChromaDB Integration (`services/vector_store.py`):**
   - Initialize persistent Chroma client with HNSW indexing and cosine similarity metric.
   - Multi-tenant partitioning: Filter queries by `user_id` and selected `document_ids`.
-- [ ] **Vector Retrieval API:**
+- [x] **Vector Retrieval API:**
   - Query embedding generation and k-NN search.
   - Score normalization and threshold filtering to reject irrelevant chunks.
 
 ### Milestone 3: Grounded Citations & Hallucination Mitigation
-- [ ] **Citation-Enforcing Prompt Engineering:**
-  - Design system prompts that force the model to anchor every assertion to a specific chunk UUID or citation ID `[^chunk_id]`.
+- [x] **Citation-Enforcing Prompt Engineering:**
+  - Design system prompts that force the model to anchor every assertion to a specific citation ID `[1]`, `[2]`.
   - Enforce explicit rejection behavior: *"If the provided context does not contain sufficient evidence to answer, state that the information is unavailable in the document."*
-- [ ] **Citation Parsing & Verification Engine (`services/generation/citation_engine.py`):**
-  - Parse inline citation markers (`[^1]`, `[^2]`) from generated text.
+- [x] **Citation Parsing & Verification Engine (`services/rag.py`):**
+  - Parse inline citation markers (`[1]`, `[2]`) from generated text.
   - Validate that each cited chunk actually contains textual entailment for the generated claim.
   - Return rich citation payloads: page number, verbatim excerpt, and confidence score for interactive frontend highlighting.
 
 ### Milestone 4: Real-time Streaming via Server-Sent Events (SSE)
-- [ ] **Streaming Generator (`services/generation/streaming.py`):**
+- [x] **Streaming Generator (`services/rag.py`, `api/v1/endpoints/chat.py`):**
   - Stream tokens asynchronously using SSE (`text/event-stream`).
   - Structured event types:
-    - `event: status` (e.g., "Retrieving relevant passages...", "Reranking context...")
     - `event: token` (raw answer text tokens as they generate)
-    - `event: citation` (grounded citation metadata objects)
+    - `event: citations` (grounded citation metadata objects + retrieval latency metrics)
     - `event: done` (latency metrics, total tokens consumed)
-  - Handle client disconnection gracefully to abort generation and release GPU/CPU memory.
+    - `event: error` (structured error payloads)
+  - Handle client disconnection gracefully to abort generation.
 
 ### Milestone 5: Authentication, Authorization & User Metadata
-- [ ] **User & Document Models (PostgreSQL + SQLAlchemy 2.0 Async):**
+- [x] **User & Document Models (PostgreSQL + SQLAlchemy 2.0 Async):**
   - `User`: ID, email, hashed_password, created_at.
   - `Document`: ID, user_id, filename, file_size, page_count, status (`PROCESSING`, `READY`, `FAILED`).
   - `ChatMessage` & `Conversation`: History persistence with citation snapshots.
-- [ ] **Security & Auth Services (`core/security.py`, `api/v1/endpoints/auth.py`):**
-  - Password hashing with `bcrypt` / `argon2`.
-  - JWT Access & Refresh token rotation with OAuth2 Password Bearer flow.
-  - Enforce strict row-level authorization: users can only access their own uploaded documents.
+- [x] **Security & Auth Services (`core/security.py`, `api/v1/endpoints/auth.py`):**
+  - Password hashing with `bcrypt`.
+  - JWT Access token rotation with OAuth2 Password Bearer flow.
+  - Enforce strict row-level authorization: users can only access their own uploaded documents and vector chunks.
 
 ### Milestone 6: Advanced Retrieval — Hybrid Search & Cross-Encoder Reranking
-- [ ] **BM25 Lexical Index (`services/retrieval/bm25_index.py`):**
-  - Maintain an in-memory or persisted BM25 index per document/corpus for keyword precision.
-- [ ] **Reciprocal Rank Fusion (RRF) (`services/retrieval/hybrid.py`):**
+- [x] **BM25 Lexical Index (`services/bm25.py`):**
+  - Lucene-standard positive IDF BM25 Okapi searcher scoped per user.
+- [x] **Reciprocal Rank Fusion (RRF) (`services/hybrid_retriever.py`):**
   - Combine ranked candidate lists from dense vector search and BM25 sparse search using standard RRF formula:
-    $$RRF\_Score(d) = \sum_{m \in M} \frac{1}{k + rank_m(d)}$$ (with constant $k \approx 60$).
-- [ ] **Cross-Encoder Neural Reranking (`services/retrieval/reranker.py`):**
-  - Pass the top-N (e.g., 25) fused candidate passages through a cross-encoder model (`cross-encoder/ms-marco-MiniLM-L-6-v2`) scoring the full `(query, passage)` pair.
-  - Select the top-K (e.g., 5) highest scoring passages to construct the final prompt context, maximizing context precision.
+    $$RRF\_Score(d) = \sum_{m \in M} \frac{1}{k + rank_m(d)}$$ (with constant $k = 60$).
+- [x] **Cross-Encoder Neural Reranking (`services/reranker.py`):**
+  - Pass the top fused candidate passages through a cross-encoder model (`cross-encoder/ms-marco-MiniLM-L-6-v2`) scoring the full `(query, passage)` pair.
+  - Select the top-K highest scoring passages to construct the final prompt context, maximizing context precision.
+- [x] **Interactive Benchmarking & Latency Profiling:**
+  - Multi-stage latency breakdown (`vector_ms`, `bm25_ms`, `rrf_ms`, `rerank_ms`, `total_ms`) logged and returned live.
+  - 3-way toggleable modes (`vector_only`, `hybrid`, `hybrid_rerank`) available via env, REST API, and frontend header control.
 
 ### Milestone 7: Evaluation, Observability & Guardrails
 - [ ] **RAG Evaluation Suite (`services/evaluation/`):**

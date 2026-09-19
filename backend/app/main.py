@@ -1,4 +1,8 @@
-"""Main FastAPI application factory and ASGI entrypoint for CiteRAG."""
+import sys
+
+# Prevent broken torchcodec from attempting to load non-existent ffmpeg dlls on Windows/Python 3.14
+if "torchcodec" not in sys.modules:
+    sys.modules["torchcodec"] = None
 
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager

@@ -90,6 +90,15 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL_NAME: str = "BAAI/bge-small-en-v1.5"
     RERANKER_MODEL_NAME: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
+    # Hybrid Retrieval & Reranker Settings
+    RETRIEVAL_MODE: str = "hybrid_rerank"  # "vector_only", "hybrid", or "hybrid_rerank"
+    RETRIEVAL_VECTOR_TOP_K: int = 20
+    RETRIEVAL_BM25_TOP_K: int = 20
+    RRF_K: int = 60
+    RERANKER_TOP_K: int = 4
+    BM25_K1: float = 1.5
+    BM25_B: float = 0.75
+
     # LLM Settings & API Keys
     LLM_PROVIDER: str = (
         "openai"  # "openai", "anthropic" / "claude", "ollama", or "mock"
