@@ -90,10 +90,8 @@ export interface ChatStreamCallbacks {
   onError: (error: string) => void;
 }
 
-// We now use Next.js API route handlers instead of the FastAPI backend
-const API_BASE_URL = "/api";
-
-import { createClient } from "../utils/supabase/client";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
 /**
  * Register a new user account with email and password.
@@ -103,29 +101,18 @@ export async function registerUser(
   password: string,
   fullName?: string
 ): Promise<AuthResponse> {
-  const supabase = createClient();
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { full_name: fullName },
-    },
+  const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ email, password, full_name: fullName }),
   });
 
-  if (error) throw new Error(error.message);
-  if (!data.session) throw new Error("Please check your email for a confirmation link.");
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Registration failed with status ${response.status}`);
+  }
 
-  return {
-    access_token: data.session.access_token,
-    token_type: data.session.token_type,
-    user: {
-      id: data.user!.id,
-      email: data.user!.email!,
-      full_name: data.user!.user_metadata.full_name,
-      is_active: true,
-      created_at: data.user!.created_at,
-    },
-  };
+  return response.json();
 }
 
 /**
@@ -135,60 +122,56 @@ export async function loginUser(
   email: string,
   password: string
 ): Promise<AuthResponse> {
-  const supabase = createClient();
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
+  const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ email, password }),
   });
 
-  if (error) throw new Error(error.message);
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Login failed with status ${response.status}`);
+  }
 
-  return {
-    access_token: data.session.access_token,
-    token_type: data.session.token_type,
-    user: {
-      id: data.user.id,
-      email: data.user.email!,
-      full_name: data.user.user_metadata.full_name,
-      is_active: true,
-      created_at: data.user.created_at,
-    },
-  };
+  return response.json();
 }
 
 /**
  * Fetch profile for current authenticated user.
  */
 export async function getCurrentUser(token: string): Promise<User> {
-  const supabase = createClient();
-  // Set session from token if necessary, but browser client usually knows it
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const response = await fetch(`${API_BASE_URL}/auth/me`, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
 
-  if (error || !user) throw new Error("Authentication failed");
+  if (!response.ok) {
+    throw new Error(`Authentication token invalid or expired (${response.status})`);
+  }
 
-  return {
-    id: user.id,
-    email: user.email!,
-    full_name: user.user_metadata.full_name,
-    is_active: true,
-    created_at: user.created_at,
-  };
+  return response.json();
 }
 
 /**
- * Upload a document with real-time upload progress tracking.
+ * Upload a document with real-time upload progress tracking and JWT authorization.
  */
 export function uploadDocument(
   file: File,
-  token?: string | null, // Kept for backwards compatibility but not needed
+  token?: string | null,
   onProgress?: (percentage: number) => void
 ): Promise<DocumentUploadResponse> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    const url = `${API_BASE_URL}/upload`;
+    const url = `${API_BASE_URL}/documents/upload`;
 
     xhr.open("POST", url, true);
-    // Credentials are sent automatically by browser to same origin
+
+    if (token) {
+      xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    }
 
     if (xhr.upload && onProgress) {
       xhr.upload.onprogress = (event) => {
@@ -210,7 +193,7 @@ export function uploadDocument(
       } else {
         try {
           const errorData = JSON.parse(xhr.responseText);
-          reject(new Error(errorData.detail || errorData.error || `Upload failed with status ${xhr.status}`));
+          reject(new Error(errorData.detail || `Upload failed with status ${xhr.status}`));
         } catch {
           reject(new Error(`Upload failed with HTTP ${xhr.status}: ${xhr.statusText}`));
         }
@@ -231,24 +214,23 @@ export function uploadDocument(
  * Fetch the list of tracked documents belonging to the authenticated user.
  */
 export async function listDocuments(token?: string | null): Promise<DocumentItem[]> {
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from("documents")
-    .select("id, title, status, created_at")
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    throw new Error(`Failed to list documents: ${error.message}`);
+  const headers: Record<string, string> = { Accept: "application/json" };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
-  return (data || []).map((doc: any) => ({
-    document_id: doc.id,
-    filename: doc.title,
-    status: doc.status,
-    chunk_count: 0, // Simplified for now
-    user_id: "",
-    created_at: doc.created_at,
-  }));
+  const response = await fetch(`${API_BASE_URL}/documents`, {
+    method: "GET",
+    headers,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to list documents (${response.status}): ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data.documents || [];
 }
 
 /**
@@ -258,25 +240,19 @@ export async function deleteDocument(
   documentId: string,
   token?: string | null
 ): Promise<void> {
-  const supabase = createClient();
-  // Fetch storage path first to delete the file
-  const { data: docData } = await supabase
-    .from("documents")
-    .select("storage_path")
-    .eq("id", documentId)
-    .single();
-
-  if (docData?.storage_path) {
-    await supabase.storage.from("documents").remove([docData.storage_path]);
+  const headers: Record<string, string> = { Accept: "application/json" };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const { error } = await supabase
-    .from("documents")
-    .delete()
-    .eq("id", documentId);
+  const response = await fetch(`${API_BASE_URL}/documents/${documentId}`, {
+    method: "DELETE",
+    headers,
+  });
 
-  if (error) {
-    throw new Error(`Failed to delete document: ${error.message}`);
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to delete document (${response.status}): ${errorText}`);
   }
 }
 
@@ -312,7 +288,7 @@ export async function getChatHistory(
 export async function streamChat(
   request: ChatRequest,
   callbacks: ChatStreamCallbacks,
-  token?: string | null, // Kept for backwards compatibility but not needed
+  token?: string | null,
   signal?: AbortSignal
 ): Promise<void> {
   const url = `${API_BASE_URL}/chat`;
@@ -321,7 +297,9 @@ export async function streamChat(
     "Content-Type": "application/json",
     Accept: "text/event-stream",
   };
-  // Next.js API route will read auth from cookies
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
 
   let response: Response;
   try {
