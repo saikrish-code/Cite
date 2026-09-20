@@ -45,6 +45,19 @@ export async function POST(req: NextRequest) {
         }
 
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
+        
+        // Rate limiting check: max 5 requests per 1 minute window
+        const { data: allowed, error: rateLimitError } = await supabase.rpc(
+          "check_and_increment_rate_limit",
+          { p_user_id: activeUserId, p_max_requests: 5, p_window_minutes: 1 }
+        );
+
+        if (rateLimitError || !allowed) {
+          sendEvent("error", { detail: "Rate limit exceeded. Please wait a minute and try again." });
+          controller.close();
+          return;
+        }
+
         const genAI = new GoogleGenerativeAI(geminiApiKey);
 
         // 1. Embed Query
