@@ -40,6 +40,9 @@ RUN mkdir -p /app/chroma_data && chown -R citerag:citerag /app/chroma_data
 # Set ownership
 RUN chown -R citerag:citerag /app
 
+# Set Hugging Face cache to a writable directory
+ENV HF_HOME=/tmp/huggingface
+
 USER citerag
 
 # Expose the API port
