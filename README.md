@@ -25,6 +25,59 @@ cite/
 
 ---
 
+## Architecture
+
+We use a fully serverless, 100% free-tier architecture deployed on Vercel and Supabase.
+
+```mermaid
+graph TD
+    subgraph Client
+        UI[Next.js Frontend UI]
+    end
+
+    subgraph Vercel
+        NextAPI[Next.js API Routes]
+    end
+
+    subgraph Supabase
+        Auth[Supabase Auth]
+        DB[(PostgreSQL + pgvector)]
+        Storage[Supabase Storage]
+    end
+
+    subgraph External APIs
+        EmbedAPI[Gemini / Cohere Embedding API]
+        LLM[Google Gemini / Groq LLM]
+    end
+
+    UI <--> Auth
+    UI -->|Upload PDF| Storage
+    UI -->|Chat Request| NextAPI
+    NextAPI -->|Generate Embeddings| EmbedAPI
+    NextAPI -->|Hybrid Search| DB
+    NextAPI -->|Generate Grounded Response| LLM
+```
+
+## Free-Tier Deployment & Limitations
+
+This application is designed to be deployed for $0/month using:
+1. **Vercel Hobby Tier**: Hosts the Next.js frontend and serverless API route handlers.
+2. **Supabase Free Tier**: Provides Postgres database with `pgvector`, Auth, and Storage.
+3. **Google Gemini API**: Provides free embeddings (`text-embedding-004`) and LLM generation (`gemini-1.5-flash`).
+
+### Limitations & Trade-offs
+- **Vercel Execution Limits**: Vercel Hobby limits serverless function execution to 10-60 seconds. To bypass this, file uploads chunk and embed in smaller batches, and chat endpoints stream the LLM response.
+- **Database Size**: Supabase Free gives 500MB of database space. Vector indexes (HNSW) and tsvectors consume significant space, limiting the app to thousands of pages, not millions.
+- **Inactivity Pausing**: Supabase pauses free projects after 1 week of inactivity. You must manually unpause it in the dashboard.
+- **Rate Limiting**: Free-tier APIs (like Gemini's 15 RPM) require rate limiting per-user, implemented via a Postgres counter table.
+
+For step-by-step deployment instructions, see [Vercel Deployment Guide](docs/vercel_deployment.md).
+
+## Live Demo
+[Link to Live Demo (Placeholder)](#)
+
+---
+
 ## Quick Start
 
 ### 1. Backend Setup
