@@ -9,10 +9,12 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ai-sdk/google": "^4.0.76",
     "@google/generative-ai": "^0.24.1",
     "@langchain/textsplitters": "^1.0.1",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.116.0",
+    "ai": "^7.0.107",
     "lucide-react": "^1.47.0",
     "mammoth": "^1.12.3",
     "next": "16.3.5",
