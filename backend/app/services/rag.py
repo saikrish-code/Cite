@@ -16,9 +16,10 @@ import re
 from collections.abc import AsyncIterator
 from typing import Any
 
-from app.schemas.chat import Citation, RAGResponse, RetrievalMetrics
+from app.schemas.chat import Citation, RAGResponse, RetrievalMetrics, ChatHistoryEntry
 from app.schemas.document import VectorSearchResult
 from app.services.hybrid_retriever import HybridRetriever
+from app.services.intent import IntentCategory, IntentClassifier
 from app.services.llm import BaseLLMClient, get_llm_client
 from app.services.vector_store import BaseVectorStore, ChromaVectorStore
 
@@ -64,6 +65,7 @@ class RAGService:
         self.llm_client = llm_client or get_llm_client()
         self.system_prompt = system_prompt
         self.retriever = retriever or HybridRetriever(vector_store=self.vector_store)
+        self.intent_classifier = IntentClassifier(llm_client=self.llm_client)
 
     def _build_context_and_prompt(
         self, query: str, search_results: list[VectorSearchResult]
@@ -164,6 +166,7 @@ class RAGService:
         document_id: str | None = None,
         user_id: str | None = None,
         retrieval_mode: str | None = None,
+        history: list[ChatHistoryEntry] | None = None,
     ) -> RAGResponse:
         """Synchronously retrieve context, prompt LLM, and return structured grounded response.
 
@@ -185,6 +188,25 @@ class RAGService:
                 answer="I don't know based on the provided context.",
                 citations=[],
                 context_found=False,
+            )
+
+        intent = self.intent_classifier.classify(cleaned_query, history)
+        if intent == IntentCategory.CONVERSATIONAL:
+            sys_prompt = "You are a helpful assistant. Keep your answer concise and conversational."
+            user_prompt = f"User: {cleaned_query}"
+            raw_answer = self.llm_client.generate(prompt=user_prompt, system_prompt=sys_prompt).strip()
+            return RAGResponse(
+                query=cleaned_query,
+                answer=raw_answer,
+                citations=[],
+                context_found=True,
+            )
+        elif intent == IntentCategory.AMBIGUOUS:
+            return RAGResponse(
+                query=cleaned_query,
+                answer="I can help with that. Do you want me to explain it using the information from the indexed research papers?",
+                citations=[],
+                context_found=True,
             )
 
         merged_filters = self._resolve_filters(filters, document_id, user_id)
@@ -243,6 +265,7 @@ class RAGService:
         document_id: str | None = None,
         user_id: str | None = None,
         retrieval_mode: str | None = None,
+        history: list[ChatHistoryEntry] | None = None,
     ) -> RAGResponse:
         """Asynchronously retrieve context, prompt LLM, and return structured grounded response.
 
@@ -264,6 +287,25 @@ class RAGService:
                 answer="I don't know based on the provided context.",
                 citations=[],
                 context_found=False,
+            )
+
+        intent = await self.intent_classifier.aclassify(cleaned_query, history)
+        if intent == IntentCategory.CONVERSATIONAL:
+            sys_prompt = "You are a helpful assistant. Keep your answer concise and conversational."
+            user_prompt = f"User: {cleaned_query}"
+            raw_answer = (await self.llm_client.agenerate(prompt=user_prompt, system_prompt=sys_prompt)).strip()
+            return RAGResponse(
+                query=cleaned_query,
+                answer=raw_answer,
+                citations=[],
+                context_found=True,
+            )
+        elif intent == IntentCategory.AMBIGUOUS:
+            return RAGResponse(
+                query=cleaned_query,
+                answer="I can help with that. Do you want me to explain it using the information from the indexed research papers?",
+                citations=[],
+                context_found=True,
             )
 
         merged_filters = self._resolve_filters(filters, document_id, user_id)
@@ -324,6 +366,7 @@ class RAGService:
         document_id: str | None = None,
         user_id: str | None = None,
         retrieval_mode: str | None = None,
+        history: list[ChatHistoryEntry] | None = None,
     ) -> AsyncIterator[dict[str, Any]]:
         """Stream RAG answer token-by-token, then yield citations as final events.
 
@@ -361,6 +404,31 @@ class RAGService:
                     "answer": "I don't know based on the provided context.",
                 },
             }
+            return
+
+        intent = await self.intent_classifier.aclassify(cleaned_query, history)
+        if intent == IntentCategory.CONVERSATIONAL:
+            sys_prompt = "You are a helpful assistant. Keep your answer concise and conversational."
+            user_prompt = f"User: {cleaned_query}"
+            accumulated_answer = ""
+            try:
+                async for token in self.llm_client.astream_generate(prompt=user_prompt, system_prompt=sys_prompt):
+                    accumulated_answer += token
+                    yield {"event": "token", "data": {"token": token}}
+            except Exception as exc:
+                logger.exception("Error during LLM conversational streaming for query: %s", cleaned_query)
+                yield {"event": "error", "data": {"detail": str(exc)}}
+                return
+            
+            yield {"event": "citations", "data": {"citations": [], "context_found": True}}
+            yield {"event": "done", "data": {"query": cleaned_query, "answer": accumulated_answer}}
+            return
+            
+        elif intent == IntentCategory.AMBIGUOUS:
+            answer = "I can help with that. Do you want me to explain it using the information from the indexed research papers?"
+            yield {"event": "token", "data": {"token": answer}}
+            yield {"event": "citations", "data": {"citations": [], "context_found": True}}
+            yield {"event": "done", "data": {"query": cleaned_query, "answer": answer}}
             return
 
         # Retrieve context via multi-stage hybrid retriever

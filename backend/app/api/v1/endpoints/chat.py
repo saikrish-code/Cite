@@ -64,6 +64,7 @@ async def _sse_event_generator(
     document_id: str | None = None,
     k: int = 4,
     retrieval_mode: str | None = None,
+    history: list[ChatHistoryEntry] | None = None,
 ) -> AsyncIterator[str]:
     """Generate SSE-formatted events from RAG answer stream.
 
@@ -86,6 +87,7 @@ async def _sse_event_generator(
             document_id=document_id,
             user_id=user_id,
             retrieval_mode=retrieval_mode,
+            history=history,
         ):
             event_type = event_dict["event"]
             event_data = json.dumps(event_dict["data"])
@@ -153,6 +155,29 @@ async def chat_stream(
                 detail=f"Document '{request.document_id}' not found or unauthorized.",
             )
 
+    # Fetch recent history for context resolution
+    hist_stmt = (
+        select(ChatMessage)
+        .where(ChatMessage.user_id == current_user.id)
+        .order_by(ChatMessage.created_at.desc())
+    )
+    if request.document_id:
+        hist_stmt = hist_stmt.where(ChatMessage.document_id == request.document_id)
+        
+    hist_res = await db.execute(hist_stmt.limit(5))
+    records = hist_res.scalars().all()
+    # Reverse to chronological order
+    history = [
+        ChatHistoryEntry(
+            id=r.id,
+            query=r.query,
+            answer=r.answer,
+            citations=r.citations,
+            context_found=r.context_found,
+            created_at=r.created_at,
+        ) for r in reversed(records)
+    ]
+
     return StreamingResponse(
         content=_sse_event_generator(
             query=request.query,
@@ -160,6 +185,7 @@ async def chat_stream(
             document_id=request.document_id,
             k=request.k,
             retrieval_mode=request.retrieval_mode,
+            history=history,
         ),
         media_type="text/event-stream",
         headers={
