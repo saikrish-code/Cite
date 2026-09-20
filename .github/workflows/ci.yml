@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  backend-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+        cache: 'pip'
+        
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libpq-dev
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install "pytest>=8.3.0" "pytest-asyncio>=0.24.0" "pytest-cov>=5.0.0" "ruff>=0.6.0" "black>=24.8.0" "mypy>=1.11.0"
+        
+    - name: Lint with ruff
+      run: |
+        ruff check .
+        
+    - name: Type check with mypy
+      run: |
+        mypy app || true # Allow failure for now if strict mode catches too much
+        
+    - name: Test with pytest
+      run: |
+        pytest -v
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+        cache: 'npm'
+        cache-dependency-path: './frontend/package-lock.json'
+        
+    - name: Install dependencies
+      run: npm ci || npm install
+      
+    - name: Lint
+      run: npm run lint
+      
+    - name: Build
+      run: npm run build

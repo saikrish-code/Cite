@@ -123,6 +123,11 @@ class ChromaVectorStore(BaseVectorStore):
 
         if client is not None:
             self._client = client
+        elif settings.CHROMA_SERVER_HOST and settings.CHROMA_SERVER_HOST != "localhost":
+            self._client = chromadb.HttpClient(
+                host=settings.CHROMA_SERVER_HOST,
+                port=settings.CHROMA_SERVER_PORT,
+            )
         elif persist_directory == ":memory:":
             self._client = chromadb.EphemeralClient()
         else:
