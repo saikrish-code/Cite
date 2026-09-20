@@ -9,14 +9,9 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
-    const userId = formData.get("userId") as string; // Temporary until full auth
 
     if (!file) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
-    }
-    
-    if (!userId) {
-      return NextResponse.json({ error: "User ID required" }, { status: 400 });
     }
 
     if (file.size > 5 * 1024 * 1024) {
@@ -30,8 +25,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Supabase config missing" }, { status: 500 });
     }
 
-    // Use service role key to perform backend operations
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const { createClient: createServerClient } = await import("../../../utils/supabase/server");
+    const supabaseAuth = await createServerClient();
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = user.id;
+
+    const supabase = supabaseAuth;
 
     // 1. Upload to Supabase Storage
     const fileName = `${userId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;

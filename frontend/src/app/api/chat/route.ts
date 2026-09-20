@@ -15,16 +15,24 @@ export async function POST(req: NextRequest) {
 
       try {
         const body = await req.json();
-        const { query, document_id, user_id } = body;
-        
-        // Use user_id from body for now (Stage 4 will use auth headers)
-        const activeUserId = user_id;
+        const { query, document_id } = body;
 
-        if (!query || !activeUserId) {
-          sendEvent("error", { detail: "Query and User ID are required." });
+        if (!query) {
+          sendEvent("error", { detail: "Query is required." });
           controller.close();
           return;
         }
+
+        const { createClient: createServerClient } = await import("../../../utils/supabase/server");
+        const supabaseAuth = await createServerClient();
+        const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+
+        if (authError || !user) {
+          sendEvent("error", { detail: "Unauthorized" });
+          controller.close();
+          return;
+        }
+        const activeUserId = user.id;
 
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
         const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
