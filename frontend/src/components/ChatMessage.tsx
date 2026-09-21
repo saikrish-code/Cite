@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
@@ -33,12 +33,59 @@ interface ChatMessageProps {
   onSelectCitation: (citation: Citation) => void;
 }
 
+function useSmoothStreaming(content: string, isStreaming: boolean, speedMs: number = 35) {
+  const [displayedContent, setDisplayedContent] = useState(content);
+
+  useEffect(() => {
+    if (!isStreaming) {
+      setDisplayedContent(content);
+      return;
+    }
+
+    if (displayedContent === content) return;
+
+    if (!content.startsWith(displayedContent)) {
+      setDisplayedContent(content.substring(0, 1));
+      return;
+    }
+
+    const diff = content.length - displayedContent.length;
+    let nextIndex = displayedContent.length;
+    
+    if (diff > 150) {
+      // If we are way behind, jump ahead by a larger chunk to catch up
+      nextIndex += Math.floor(diff / 3);
+    } else {
+      // Find the next space or word boundary
+      const remaining = content.substring(displayedContent.length);
+      const nextSpaceMatch = remaining.match(/[\s\n]/);
+      if (nextSpaceMatch && nextSpaceMatch.index !== undefined) {
+        // add up to and including the next space
+        nextIndex += nextSpaceMatch.index + 1;
+      } else {
+        // If no space found, just add a few chars (or the rest if it's the last word)
+        nextIndex += remaining.length > 5 ? 3 : remaining.length;
+      }
+    }
+    
+    const timeout = setTimeout(() => {
+      setDisplayedContent(content.substring(0, nextIndex));
+    }, speedMs);
+
+    return () => clearTimeout(timeout);
+  }, [content, displayedContent, isStreaming, speedMs]);
+
+  return displayedContent;
+}
+
 export default function ChatMessage({
   message,
   onSelectCitation,
 }: ChatMessageProps) {
   const [copied, setCopied] = useState(false);
   const isAssistant = message.role === "assistant";
+  
+  const displayedContent = useSmoothStreaming(message.content, !!message.isStreaming);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(message.content);
@@ -216,7 +263,7 @@ export default function ChatMessage({
                     },
                   }}
                 >
-                  {message.content}
+                  {displayedContent}
                 </ReactMarkdown>
 
                 {/* Blinking streaming cursor */}
