@@ -17,10 +17,14 @@ help:
 	@echo "  make lint           - Check code formatting & linting with ruff and black"
 	@echo "  make format         - Auto-format code with ruff and black"
 	@echo "  make clean          - Remove temporary files and test caches"
+	@echo "  make eval           - Run the RAG evaluation suite"
 
 install:
 	$(PYTHON) -m pip install --upgrade pip
 	$(PYTHON) -m pip install -r backend/requirements.txt
+
+eval:
+	cd eval/benchmarks && $(PYTHON) evaluator.py
 
 run: run-backend
 

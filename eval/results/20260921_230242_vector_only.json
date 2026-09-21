@@ -1,0 +1,762 @@
+[
+  {
+    "id": "q_1",
+    "question": "What was the mean age of the footballers who participated in the study?",
+    "answer": "The mean age of the footballers who participated in the study was **24.21\u202fyears**\u202f\u00b1\u202f3.41\u202fyears\u30101\u3011\u30102\u3011.",
+    "metrics": {
+      "hit_rate_at_1": 0,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 0.5,
+      "context_precision": 0.4,
+      "faithfulness": 1.0,
+      "answer_relevance": 1.0,
+      "answer_correctness": 1.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 0.0,
+      "page_accuracy": 0.0,
+      "total_ms": 2780.141830444336
+    }
+  },
+  {
+    "id": "q_2",
+    "question": "How many times was the 20\u2011meter sprint repeated for each participant?",
+    "answer": "The 20\u2011meter sprint was performed **10 times** for each participant\u30101\u3011\u30102\u3011.",
+    "metrics": {
+      "hit_rate_at_1": 0,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 0.5,
+      "context_precision": 0.2,
+      "faithfulness": 1.0,
+      "answer_relevance": 1.0,
+      "answer_correctness": 1.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 0.0,
+      "page_accuracy": 0.0,
+      "total_ms": 1089.6222591400146
+    }
+  },
+  {
+    "id": "q_3",
+    "question": "Why do the authors suggest that nitric oxide (NO) levels decreased after the short\u2011term maximal load exercise?",
+    "answer": "The authors attribute the drop in nitric\u2011oxide (NO) levels to the oxidative stress produced by the brief, maximal\u2011load effort. They note that heavy exercise markedly raises free radicals, and some of the NO generated is consumed by reacting with those radicals. This oxidative damage, together with the body\u2019s NO\u2011based defensive response, leads to a reduction in the measured NO values immediately after the exercise\u202f[1].",
+    "metrics": {
+      "hit_rate_at_1": 0,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 0.5,
+      "context_precision": 0.2,
+      "faithfulness": 1.0,
+      "answer_relevance": 1.0,
+      "answer_correctness": 1.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 1.0,
+      "page_accuracy": 0.0,
+      "total_ms": 14840.091943740845
+    }
+  },
+  {
+    "id": "q_4",
+    "question": "Which statistical test was employed to analyze the pre\u2011 and post\u2011exercise NO measurements?",
+    "answer": "The pre\u2011 and post\u2011exercise nitric\u2011oxide (NO) measurements were analyzed using a **paired t\u2011test**\u202f[1].",
+    "metrics": {
+      "hit_rate_at_1": 1,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 1.0,
+      "context_precision": 0.2,
+      "faithfulness": 0.0,
+      "answer_relevance": 1.0,
+      "answer_correctness": 1.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 1.0,
+      "page_accuracy": 1.0,
+      "total_ms": 19451.891660690308
+    }
+  },
+  {
+    "id": "q_5",
+    "question": "What P\u2011value was reported for the change in NO levels after the sprint exercise?",
+    "answer": "The reported P\u2011value for the change in serum NO levels after the sprint exercise was **P\u202f=\u202f0.052**\u30101\u3011\u30102\u3011\u30104\u3011.",
+    "metrics": {
+      "hit_rate_at_1": 1,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 1.0,
+      "context_precision": 0.2,
+      "faithfulness": 1.0,
+      "answer_relevance": 1.0,
+      "answer_correctness": 1.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 0.0,
+      "page_accuracy": 0.0,
+      "total_ms": 7370.986223220825
+    }
+  },
+  {
+    "id": "q_6",
+    "question": "How is nitric oxide (NO) described in the article's introduction?",
+    "answer": "In the introduction, nitric oxide (NO) is first portrayed as a pollutant\u2014\u201cthe exhaust gas of automobiles, an atmospheric gas found in cigarettes, and an agent polluting the atmosphere\u201d and as a harmful free\u2011radical molecule because of its unpaired electron.  However, the article then emphasizes that NO is actually an important physiological molecule: it \u201cbalances the blood pressure and vasodilatation,\u201d causes vasodilatation in veins, accelerates blood flow, and regulates blood circulation.  Moreover, NO \u201ckeeps the veins clean\u201d; a vein network rich in NO is described as \u201cslippery like Teflon\u201d and able to prevent plaque buildup, whereas veins poor in NO lead to plaque accumulation\u30101\u3011.",
+    "metrics": {
+      "hit_rate_at_1": 0,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 0.3333333333333333,
+      "context_precision": 0.4,
+      "faithfulness": 0.0,
+      "answer_relevance": 0.9,
+      "answer_correctness": 0.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 0.0,
+      "page_accuracy": 0.0,
+      "total_ms": 15768.230199813843
+    }
+  },
+  {
+    "id": "q_7",
+    "question": "What long\u2011term effects does repeated speed exercise have on cardiovascular health in footballers?",
+    "answer": "I don't know based on the provided context.",
+    "metrics": {
+      "hit_rate_at_1": 1,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 1.0,
+      "context_precision": 0.4,
+      "faithfulness": 0.0,
+      "answer_relevance": 0.0,
+      "answer_correctness": 0.0,
+      "refusal_accuracy": 1.0,
+      "citation_precision": 0.0,
+      "page_accuracy": 0.0,
+      "total_ms": 8515.774965286255
+    }
+  },
+  {
+    "id": "q_8",
+    "question": "Did the study find a statistically significant change in NO levels after the sprint exercise?",
+    "answer": "No. The study reported that the decrease in nitric\u2011oxide (NO) levels after the sprint exercise was not statistically significant (P\u202f=\u202f0.052)\u30101\u3011.",
+    "metrics": {
+      "hit_rate_at_1": 1,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 1.0,
+      "context_precision": 0.4,
+      "faithfulness": 1.0,
+      "answer_relevance": 1.0,
+      "answer_correctness": 1.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 0.0,
+      "page_accuracy": 0.0,
+      "total_ms": 14741.336822509766
+    }
+  },
+  {
+    "id": "q_9",
+    "question": "What was nitric oxide (NO) originally thought to be before recent research changed its perception?",
+    "answer": "Nitric oxide was originally regarded only as an environmental pollutant \u2013 essentially the exhaust gas from automobiles, an atmospheric gas present in cigarette smoke, and a harmful agent that polluted the atmosphere\u202f[1].",
+    "metrics": {
+      "hit_rate_at_1": 1,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 1.0,
+      "context_precision": 0.2,
+      "faithfulness": 0.0,
+      "answer_relevance": 1.0,
+      "answer_correctness": 1.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 1.0,
+      "page_accuracy": 1.0,
+      "total_ms": 14518.49365234375
+    }
+  },
+  {
+    "id": "q_10",
+    "question": "What physiological effect does NO have on veins according to the introduction?",
+    "answer": "According to the introduction, nitric oxide (NO) causes vasodilatation in veins and accelerates blood flow, helping to keep the veins clean and preventing plaque buildup\u30101\u3011.",
+    "metrics": {
+      "hit_rate_at_1": 1,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 1.0,
+      "context_precision": 0.4,
+      "faithfulness": 1.0,
+      "answer_relevance": 0.9,
+      "answer_correctness": 1.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 0.0,
+      "page_accuracy": 0.0,
+      "total_ms": 7767.2789096832275
+    }
+  },
+  {
+    "id": "q_11",
+    "question": "How many footballers participated in the study and what was their age range?",
+    "answer": "The study included **22 footballers** whose ages spanned **18\u202f\u2013\u202f32\u202fyears**\u30104\u3011\u30103\u3011.",
+    "metrics": {
+      "hit_rate_at_1": 0,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 0.3333333333333333,
+      "context_precision": 0.2,
+      "faithfulness": 1.0,
+      "answer_relevance": 1.0,
+      "answer_correctness": 1.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 0.0,
+      "page_accuracy": 0.0,
+      "total_ms": 18670.497179031372
+    }
+  },
+  {
+    "id": "q_12",
+    "question": "Describe the sprint test protocol used in the experiment.",
+    "answer": "The sprint test was performed as follows:\n\n* **Warm\u2011up** \u2013 Participants completed a 20\u2011minute warm\u2011up consisting of 15\u202fminutes of general warm\u2011up and 5\u202fminutes of specific warm\u2011up before the sprint test began\u30101\u3011.  \n* **Sprint protocol** \u2013 The test consisted of **ten repetitions of a 20\u2011metre sprint**. Each sprint was performed at maximal speed; subjects began each run when they felt ready, without a prescribed start signal\u30101\u3011.  \n* **Speed measurement** \u2013 Sprint times were recorded with a **0.01\u202fs\u2011sensitive photocell system** (New Test 2000, Finland) placed at the start and finish lines on a smooth synthetic floor\u30102\u3011\u30103\u3011.  \n* **Blood sampling** \u2013 Venous blood samples were drawn **once before the sprint series and immediately after the final sprint** for biochemical analysis\u30101\u3011\u30103\u3011.  \n\nThese steps together constitute the sprint test protocol used in the experiment.",
+    "metrics": {
+      "hit_rate_at_1": 1,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 1.0,
+      "context_precision": 0.6,
+      "faithfulness": 1.0,
+      "answer_relevance": 0.9,
+      "answer_correctness": 1.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 0.0,
+      "page_accuracy": 0.0,
+      "total_ms": 14001.993656158447
+    }
+  },
+  {
+    "id": "q_13",
+    "question": "Which instrument was used to measure the sprint speed of the subjects?",
+    "answer": "The sprint speed was measured with a 0.01\u202fs\u2011sensitive photocell system (New\u202fTest\u202f2000, Finland)\u202f[2][3].",
+    "metrics": {
+      "hit_rate_at_1": 1,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 1.0,
+      "context_precision": 0.4,
+      "faithfulness": 0.0,
+      "answer_relevance": 1.0,
+      "answer_correctness": 1.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 1.0,
+      "page_accuracy": 0.5,
+      "total_ms": 15432.079315185547
+    }
+  },
+  {
+    "id": "q_14",
+    "question": "What is the reported age range of the participants in the study?",
+    "answer": "The participants were reported to be between **18\u202fyears and 32\u202fyears old**\u30101\u3011\u30103\u3011.",
+    "metrics": {
+      "hit_rate_at_1": 1,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 1.0,
+      "context_precision": 0.2,
+      "faithfulness": 1.0,
+      "answer_relevance": 1.0,
+      "answer_correctness": 1.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 0.0,
+      "page_accuracy": 0.0,
+      "total_ms": 8053.244113922119
+    }
+  },
+  {
+    "id": "q_15",
+    "question": "Why can excessive production of NO be detrimental to health?",
+    "answer": "Excessive nitric oxide (NO) can become harmful because its reactive products can damage cells.\u202fWhen NO reacts with other radicals it forms species such as peroxynitrite, which are capable of causing oxidative damage\u202f[4]. This oxidative damage can affect many cell types, leading to cell injury and dysfunction\u202f[4]. Heavy or maximal exercise, which raises radical production, can increase the amount of NO that is diverted toward these damaging reactions, highlighting the potential for NO\u2011related oxidative injury\u202f[2][3].",
+    "metrics": {
+      "hit_rate_at_1": 1,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 1.0,
+      "context_precision": 0.2,
+      "faithfulness": 0.0,
+      "answer_relevance": 0.9,
+      "answer_correctness": 0.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 1.0,
+      "page_accuracy": 0.0,
+      "total_ms": 14554.960012435913
+    }
+  },
+  {
+    "id": "q_16",
+    "question": "What was the average increase in plasma nitrite concentration measured after the sprint test?",
+    "answer": "I don't know based on the provided context.",
+    "metrics": {
+      "hit_rate_at_1": 1,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 1.0,
+      "context_precision": 0.2,
+      "faithfulness": 0.0,
+      "answer_relevance": 0.0,
+      "answer_correctness": 0.0,
+      "refusal_accuracy": 1.0,
+      "citation_precision": 0.0,
+      "page_accuracy": 0.0,
+      "total_ms": 6587.839126586914
+    }
+  },
+  {
+    "id": "q_17",
+    "question": "At what wavelength was absorbance measured in the Griess assay?",
+    "answer": "The absorbance in the Griess assay was measured at a wavelength of **540\u202fnm**\u30101\u3011\u30102\u3011.",
+    "metrics": {
+      "hit_rate_at_1": 1,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 1.0,
+      "context_precision": 0.6,
+      "faithfulness": 0.0,
+      "answer_relevance": 1.0,
+      "answer_correctness": 1.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 0.0,
+      "page_accuracy": 0.0,
+      "total_ms": 13282.247304916382
+    }
+  },
+  {
+    "id": "q_18",
+    "question": "What is the detection limit of the nitrite assay in distilled water?",
+    "answer": "The detection limit of the nitrite assay in distilled water is approximately\u202f1.5\u202f\u03bcmol\u202f\u00b7\u202fL\u207b\u00b9\u30101\u3011.",
+    "metrics": {
+      "hit_rate_at_1": 1,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 1.0,
+      "context_precision": 0.6,
+      "faithfulness": 1.0,
+      "answer_relevance": 0.0,
+      "answer_correctness": 1.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 0.0,
+      "page_accuracy": 0.0,
+      "total_ms": 6257.098436355591
+    }
+  },
+  {
+    "id": "q_19",
+    "question": "How were nitrate concentrations calculated from the assay measurements?",
+    "answer": "Nitrate concentrations were derived by first measuring the combined amount of nitrite\u202f+\u202fnitrate (the total nitrite\u2011nitrate value obtained after the assay) and then subtracting the separately measured nitrite concentration from this total. The resulting difference was taken as the nitrate concentration\u202f[1].",
+    "metrics": {
+      "hit_rate_at_1": 1,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 1.0,
+      "context_precision": 0.6,
+      "faithfulness": 1.0,
+      "answer_relevance": 1.0,
+      "answer_correctness": 1.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 1.0,
+      "page_accuracy": 1.0,
+      "total_ms": 19004.98342514038
+    }
+  },
+  {
+    "id": "q_20",
+    "question": "Which statistical test was employed to compare NO values before and after the speed exercise?",
+    "answer": "The study compared the serum NO values before and after the speed exercise using a **paired t\u2011test** for statistical analysis\u30102\u3011.",
+    "metrics": {
+      "hit_rate_at_1": 1,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 1.0,
+      "context_precision": 0.4,
+      "faithfulness": 1.0,
+      "answer_relevance": 1.0,
+      "answer_correctness": 1.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 0.0,
+      "page_accuracy": 0.0,
+      "total_ms": 14318.85576248169
+    }
+  },
+  {
+    "id": "q_21",
+    "question": "What was the mean serum NO level before the exercise?",
+    "answer": "The mean serum nitric oxide (NO) level before the exercise was **25.59\u202fU/ml**\u30103\u3011\u30104\u3011\u30105\u3011.",
+    "metrics": {
+      "hit_rate_at_1": 0,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 0.3333333333333333,
+      "context_precision": 0.4,
+      "faithfulness": 1.0,
+      "answer_relevance": 1.0,
+      "answer_correctness": 1.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 0.0,
+      "page_accuracy": 0.0,
+      "total_ms": 13771.848917007446
+    }
+  },
+  {
+    "id": "q_22",
+    "question": "Based on the reported p\u2011value, was the change in NO levels after exercise statistically significant?",
+    "answer": "No. The reported p\u2011value for the decrease in serum NO after exercise was\u202fP\u202f=\u202f0.052, which is above the conventional significance threshold of 0.05; therefore the change was not statistically significant\u30101\u3011\u30103\u3011\u30105\u3011.",
+    "metrics": {
+      "hit_rate_at_1": 1,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 1.0,
+      "context_precision": 0.4,
+      "faithfulness": 1.0,
+      "answer_relevance": 1.0,
+      "answer_correctness": 1.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 0.0,
+      "page_accuracy": 0.0,
+      "total_ms": 13520.067930221558
+    }
+  },
+  {
+    "id": "q_23",
+    "question": "What final concentrations of NADPH, FAD, and nitrate reductase were used in the nitrate determination assay?",
+    "answer": "The assay used final concentrations of  \n\n* **NADPH:** 50\u202f\u03bcmol\u202fL\u207b\u00b9  \n* **FAD:** 5\u202f\u03bcmol\u202fL\u207b\u00b9  \n* **Nitrate reductase:** 200\u202fU\u202fL\u207b\u00b9  \n\nThese concentrations were added after plasma dilution to achieve the stated final levels\u30101\u3011\u30102\u3011.",
+    "metrics": {
+      "hit_rate_at_1": 1,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 1.0,
+      "context_precision": 0.6,
+      "faithfulness": 0.0,
+      "answer_relevance": 0.0,
+      "answer_correctness": 1.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 0.0,
+      "page_accuracy": 0.0,
+      "total_ms": 15715.31891822815
+    }
+  },
+  {
+    "id": "q_24",
+    "question": "What was the average heart rate of the footballers during the speed exercise?",
+    "answer": "I don't know based on the provided context.",
+    "metrics": {
+      "hit_rate_at_1": 1,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 1.0,
+      "context_precision": 0.4,
+      "faithfulness": 0.0,
+      "answer_relevance": 0.0,
+      "answer_correctness": 0.0,
+      "refusal_accuracy": 1.0,
+      "citation_precision": 0.0,
+      "page_accuracy": 0.0,
+      "total_ms": 5381.447553634644
+    }
+  },
+  {
+    "id": "q_25",
+    "question": "What type of exercises can trigger oxidative damage according to recent studies?",
+    "answer": "Recent studies indicate that **acute, heavy (or maximal\u2011load) exercises** can trigger oxidative damage\u30101\u3011.",
+    "metrics": {
+      "hit_rate_at_1": 1,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 1.0,
+      "context_precision": 0.6,
+      "faithfulness": 0.0,
+      "answer_relevance": 1.0,
+      "answer_correctness": 1.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 0.0,
+      "page_accuracy": 0.0,
+      "total_ms": 12187.67523765564
+    }
+  },
+  {
+    "id": "q_26",
+    "question": "According to the authors, which kind of sport activities better activate antioxidant systems?",
+    "answer": "According to the authors, regular and short\u2011term sport activities that are not maximal activate the antioxidant systems better than heavy, rigorous exercise\u202f[1].",
+    "metrics": {
+      "hit_rate_at_1": 1,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 1.0,
+      "context_precision": 0.2,
+      "faithfulness": 0.0,
+      "answer_relevance": 1.0,
+      "answer_correctness": 1.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 1.0,
+      "page_accuracy": 1.0,
+      "total_ms": 4549.0922927856445
+    }
+  },
+  {
+    "id": "q_27",
+    "question": "By how much did NO levels change after exercise in the authors' study?",
+    "answer": "The authors reported that serum NO levels fell from a mean of\u202f25.59\u202fU\u202fml\u207b\u00b9 before the speed exercise to a mean of\u202f21.45\u202fU\u202fml\u207b\u00b9 immediately after the exercise, representing a decrease of about\u202f4.14\u202fU\u202fml\u207b\u00b9\u30102\u3011\u30104\u3011.",
+    "metrics": {
+      "hit_rate_at_1": 1,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 1.0,
+      "context_precision": 0.4,
+      "faithfulness": 1.0,
+      "answer_relevance": 1.0,
+      "answer_correctness": 0.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 0.0,
+      "page_accuracy": 0.0,
+      "total_ms": 6262.998342514038
+    }
+  },
+  {
+    "id": "q_28",
+    "question": "Summarize the differing findings on NO level changes after exercise reported by Xia et al. and the current study.",
+    "answer": "Xia\u202fet\u202fal. reported that nitric\u2011oxide (NO) concentrations did **not** change significantly after low\u2011 or mild\u2011intensity exercise, but **increased** when the exercise was performed at a high intensity\u202f[5].  \n\nIn contrast, the present study measured NO before and immediately after a short, maximal\u2011load sprint and found that NO levels were **lower after exercise** (21.45\u202f\u00b1\u202f2.08\u202fU/ml) than before (25.59\u202f\u00b1\u202f1.59\u202fU/ml), a decrease of about 5\u202fU/ml that did not reach statistical significance (P\u202f=\u202f0.052)\u202f[1][5].",
+    "metrics": {
+      "hit_rate_at_1": 0,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 0.5,
+      "context_precision": 0.8,
+      "faithfulness": 0.0,
+      "answer_relevance": 1.0,
+      "answer_correctness": 1.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 1.0,
+      "page_accuracy": 0.6666666666666666,
+      "total_ms": 16333.713293075562
+    }
+  },
+  {
+    "id": "q_29",
+    "question": "What did Yamamato et al. report about plasma versus serum NO levels before and after aerobic exercise?",
+    "answer": "Yamamato\u202fet\u202fal. (reference\u202f17) reported that, in healthy young subjects, aerobic physical exercise did **not** alter endothelium\u2011derived nitric\u2011oxide concentrations\u2014that is, there was no significant change in NO levels measured in the blood after the exercise\u202f[5].  \n\nThe same citation is noted in the text as indicating a **difference between plasma and serum NO levels before and immediately after aerobic\u2011type exercise**\u202f[2].  \n\nThus, their study concluded that aerobic exercise produced no overall effect on NO concentrations, while also observing a distinction between plasma and serum NO measurements taken before versus after the activity.",
+    "metrics": {
+      "hit_rate_at_1": 1,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 1.0,
+      "context_precision": 0.4,
+      "faithfulness": 1.0,
+      "answer_relevance": 0.0,
+      "answer_correctness": 0.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 1.0,
+      "page_accuracy": 0.5,
+      "total_ms": 10871.69623374939
+    }
+  },
+  {
+    "id": "q_30",
+    "question": "What speeds and power were used in Ke\u00e7etepen and Dursun's exercise protocol?",
+    "answer": "I don't know based on the provided context.",
+    "metrics": {
+      "hit_rate_at_1": 0,
+      "hit_rate_at_3": 0,
+      "hit_rate_at_5": 0,
+      "mrr": 0.0,
+      "context_precision": 0.0,
+      "faithfulness": 0.0,
+      "answer_relevance": 0.0,
+      "answer_correctness": 0.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 0.0,
+      "page_accuracy": 0.0,
+      "total_ms": 14152.430295944214
+    }
+  },
+  {
+    "id": "q_31",
+    "question": "According to Jungestern et al., how did NO levels respond to exercise in long\u2011distance runners compared to students who do not exercise regularly?",
+    "answer": "Jungestern\u202fet\u202fal. reported that after exercise the nitric\u2011oxide (NO) level of long\u2011distance runners showed a \u201cmeaningful difference\u201d when compared with their pre\u2011exercise values, whereas students who do not exercise regularly exhibited a \u201cmeaningful increase\u201d in NO levels after exercise compared with before exercise\u30101\u3011.",
+    "metrics": {
+      "hit_rate_at_1": 1,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 1.0,
+      "context_precision": 0.4,
+      "faithfulness": 1.0,
+      "answer_relevance": 0.6,
+      "answer_correctness": 0.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 0.0,
+      "page_accuracy": 0.0,
+      "total_ms": 8615.859508514404
+    }
+  },
+  {
+    "id": "q_32",
+    "question": "What long\u2011term effects does repeated maximal speed exercise have on NO levels in footballers?",
+    "answer": "I don't know based on the provided context.",
+    "metrics": {
+      "hit_rate_at_1": 0,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 0.3333333333333333,
+      "context_precision": 0.2,
+      "faithfulness": 0.0,
+      "answer_relevance": 0.0,
+      "answer_correctness": 0.0,
+      "refusal_accuracy": 1.0,
+      "citation_precision": 0.0,
+      "page_accuracy": 0.0,
+      "total_ms": 14800.255060195923
+    }
+  },
+  {
+    "id": "q_33",
+    "question": "Who are the authors of reference 1?",
+    "answer": "The authors of reference\u202f1 are **Palmer\u202fRMJ, Ferrige\u202fAG, and Moncada\u202fS**\u30101\u3011.",
+    "metrics": {
+      "hit_rate_at_1": 1,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 1.0,
+      "context_precision": 0.6,
+      "faithfulness": 1.0,
+      "answer_relevance": 1.0,
+      "answer_correctness": 1.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 0.0,
+      "page_accuracy": 0.0,
+      "total_ms": 14579.814672470093
+    }
+  },
+  {
+    "id": "q_34",
+    "question": "In which year was reference 10 published?",
+    "answer": "I don't know based on the provided context.",
+    "metrics": {
+      "hit_rate_at_1": 1,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 1.0,
+      "context_precision": 0.2,
+      "faithfulness": 0.0,
+      "answer_relevance": 0.0,
+      "answer_correctness": 0.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 0.0,
+      "page_accuracy": 0.0,
+      "total_ms": 12427.025079727173
+    }
+  },
+  {
+    "id": "q_35",
+    "question": "Which study investigated the effect of aerobic physical exercise on endothelium-derived nitric oxide concentrations in healthy young subjects?",
+    "answer": "The study is:\n\n**Yamamoto\u202fK., Kondo\u202fT., Kimata\u202fA., Ueyama\u202fJ., Shirotori\u202fA., Okada\u202fY., Sakui\u202fD., Hakashima\u202fM., and Yamada\u202fS.**  \n*Lack\u202fof\u202fEffect\u202fof\u202fAerobic\u202fPhysical\u202fExercise\u202fon\u202fEndothelium\u2011Derived\u202fNitric\u202fOxide\u202fConcentrations\u202fin\u202fHealthy\u202fYoung\u202fSubjects.*  \nNagoya Journal of Medical Science\u202f2007;\u202f69:\u202f167\u2011172.\u202f[1]",
+    "metrics": {
+      "hit_rate_at_1": 1,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 1.0,
+      "context_precision": 0.8,
+      "faithfulness": 0.0,
+      "answer_relevance": 1.0,
+      "answer_correctness": 0.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 1.0,
+      "page_accuracy": 1.0,
+      "total_ms": 5762.685298919678
+    }
+  },
+  {
+    "id": "q_36",
+    "question": "Which reference discusses the role of nitric oxide in exercise hyperaemia during prolonged rhythmic handgripping?",
+    "answer": "The reference is:\n\n- Christopher\u202fK., Dyke, David\u202fN., Proctor, Niki\u202fM., Dietz, and Michael\u202fJoyner. \u201cRole of nitric oxide in exercise hyperaemia during prolonged rhythmic handgripping in humans.\u201d *Journal of Physiology* 1995;\u202f259\u2011265.\u202f[1]",
+    "metrics": {
+      "hit_rate_at_1": 1,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 1.0,
+      "context_precision": 0.6,
+      "faithfulness": 1.0,
+      "answer_relevance": 1.0,
+      "answer_correctness": 1.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 1.0,
+      "page_accuracy": 1.0,
+      "total_ms": 20640.85865020752
+    }
+  },
+  {
+    "id": "q_37",
+    "question": "How many pages does reference 5 span?",
+    "answer": "Reference\u202f5 covers pages\u202f40\u202fthrough\u202f44 of the journal\u202f[5].",
+    "metrics": {
+      "hit_rate_at_1": 0,
+      "hit_rate_at_3": 0,
+      "hit_rate_at_5": 1,
+      "mrr": 0.2,
+      "context_precision": 0.2,
+      "faithfulness": 1.0,
+      "answer_relevance": 1.0,
+      "answer_correctness": 1.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 1.0,
+      "page_accuracy": 1.0,
+      "total_ms": 19115.423917770386
+    }
+  },
+  {
+    "id": "q_38",
+    "question": "Which references are books (not journal articles) about exercise or sports?",
+    "answer": "I don't know based on the provided context.",
+    "metrics": {
+      "hit_rate_at_1": 1,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 1.0,
+      "context_precision": 0.2,
+      "faithfulness": 0.0,
+      "answer_relevance": 0.0,
+      "answer_correctness": 0.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 0.0,
+      "page_accuracy": 0.0,
+      "total_ms": 15545.008659362793
+    }
+  },
+  {
+    "id": "q_39",
+    "question": "What is the volume number of the journal where reference 12 was published?",
+    "answer": "I don't know based on the provided context.",
+    "metrics": {
+      "hit_rate_at_1": 1,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 1.0,
+      "context_precision": 0.4,
+      "faithfulness": 0.0,
+      "answer_relevance": 0.0,
+      "answer_correctness": 0.0,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 0.0,
+      "page_accuracy": 0.0,
+      "total_ms": 14477.436780929565
+    }
+  },
+  {
+    "id": "q_40",
+    "question": "What was the sample size used in the study reported in reference 15?",
+    "answer": "I don't know based on the provided context.",
+    "metrics": {
+      "hit_rate_at_1": 0,
+      "hit_rate_at_3": 0,
+      "hit_rate_at_5": 0,
+      "mrr": 0.0,
+      "context_precision": 0.0,
+      "faithfulness": 0.0,
+      "answer_relevance": 0.0,
+      "answer_correctness": 0.0,
+      "refusal_accuracy": 1.0,
+      "citation_precision": 0.0,
+      "page_accuracy": 0.0,
+      "total_ms": 14186.116695404053
+    }
+  }
+]

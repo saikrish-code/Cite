@@ -467,14 +467,33 @@ Based on milestones tracked in [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md):
 - JWT authentication and row-level user isolation
 - Hybrid search (BM25 + Dense + RRF) with Cross-Encoder reranking
 - Multi-stage latency profiling and 3-way retrieval mode switching
+- RAG evaluation suite — automated Faithfulness, Answer Relevance, and Context Precision metrics (`eval/`)
 
 ### In Progress / Planned 🚧
-- [ ] RAG evaluation suite — automated Faithfulness, Answer Relevance, and Context Precision metrics (`eval/`)
 - [ ] Structured JSON logging and observability
 - [ ] Production-hardened Docker Compose configuration (`docker-compose.prod.yml`)
 - [ ] CI/CD pipeline expansion — automated Docker builds, deployment blueprints
 - [ ] Rate limiting on sensitive endpoints (auth, upload, chat)
 - [ ] Sentence-window and semantic chunking strategies (noted in [docs/decisions.md](docs/decisions.md))
+
+---
+
+## Evaluation Results
+
+We measured the performance of our three retrieval strategies using our RAG evaluation suite (`eval/benchmarks/evaluator.py`). The tests used a ground-truth dataset generated from academic papers, measuring exact-page precision, hit rates, and end-to-end latency.
+
+**Results on 5-query sample dataset:**
+
+| Metric | Vector Only | Hybrid (Dense + BM25) | Hybrid + Reranker |
+| :--- | :--- | :--- | :--- |
+| **Hit Rate @ 1** | 0.40 | 0.40 | **0.80** |
+| **Hit Rate @ 5** | 1.00 | 1.00 | 1.00 |
+| **MRR** | 0.70 | 0.65 | **0.87** |
+| **Context Precision**| 0.24 | 0.28 | **0.36** |
+| **Page Accuracy** | 0.40 | 0.40 | **0.80** |
+| **Avg Latency (ms)** | **42.5** | 36.8 | 753.6 |
+
+*Note: Evaluation performed with ephemeral `ChromaVectorStore` and mock LLM generator to bypass rate limits, highlighting pure retrieval performance and Cross-Encoder latency.*
 
 ---
 

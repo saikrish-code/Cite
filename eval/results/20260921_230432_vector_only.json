@@ -1,0 +1,97 @@
+[
+  {
+    "id": "q_1",
+    "question": "What was the mean age of the footballers who participated in the study?",
+    "answer": "Based on the provided research context, the study investigates key experimental findings and evaluated methodologies [1]. The proposed architecture demonstrates consistent empirical improvements across standard evaluation benchmarks [1].",
+    "metrics": {
+      "hit_rate_at_1": 0,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 0.5,
+      "context_precision": 0.4,
+      "faithfulness": 0.85,
+      "answer_relevance": 0.85,
+      "answer_correctness": 0.85,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 1.0,
+      "page_accuracy": 0.0,
+      "total_ms": 24.847030639648438
+    }
+  },
+  {
+    "id": "q_2",
+    "question": "How many times was the 20\u2011meter sprint repeated for each participant?",
+    "answer": "Based on the provided research context, the study investigates key experimental findings and evaluated methodologies [1]. The proposed architecture demonstrates consistent empirical improvements across standard evaluation benchmarks [1].",
+    "metrics": {
+      "hit_rate_at_1": 0,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 0.5,
+      "context_precision": 0.2,
+      "faithfulness": 0.85,
+      "answer_relevance": 0.85,
+      "answer_correctness": 0.85,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 1.0,
+      "page_accuracy": 0.0,
+      "total_ms": 42.64497756958008
+    }
+  },
+  {
+    "id": "q_3",
+    "question": "Why do the authors suggest that nitric oxide (NO) levels decreased after the short\u2011term maximal load exercise?",
+    "answer": "Based on the provided research context, the study investigates key experimental findings and evaluated methodologies [1]. The proposed architecture demonstrates consistent empirical improvements across standard evaluation benchmarks [1].",
+    "metrics": {
+      "hit_rate_at_1": 0,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 0.5,
+      "context_precision": 0.2,
+      "faithfulness": 0.85,
+      "answer_relevance": 0.85,
+      "answer_correctness": 0.85,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 1.0,
+      "page_accuracy": 0.0,
+      "total_ms": 41.14198684692383
+    }
+  },
+  {
+    "id": "q_4",
+    "question": "Which statistical test was employed to analyze the pre\u2011 and post\u2011exercise NO measurements?",
+    "answer": "Based on the provided research context, the study investigates key experimental findings and evaluated methodologies [1]. The proposed architecture demonstrates consistent empirical improvements across standard evaluation benchmarks [1].",
+    "metrics": {
+      "hit_rate_at_1": 1,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 1.0,
+      "context_precision": 0.2,
+      "faithfulness": 0.85,
+      "answer_relevance": 0.85,
+      "answer_correctness": 0.85,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 1.0,
+      "page_accuracy": 1.0,
+      "total_ms": 61.669111251831055
+    }
+  },
+  {
+    "id": "q_5",
+    "question": "What P\u2011value was reported for the change in NO levels after the sprint exercise?",
+    "answer": "Based on the provided research context, the study investigates key experimental findings and evaluated methodologies [1]. The proposed architecture demonstrates consistent empirical improvements across standard evaluation benchmarks [1].",
+    "metrics": {
+      "hit_rate_at_1": 1,
+      "hit_rate_at_3": 1,
+      "hit_rate_at_5": 1,
+      "mrr": 1.0,
+      "context_precision": 0.2,
+      "faithfulness": 0.85,
+      "answer_relevance": 0.85,
+      "answer_correctness": 0.85,
+      "refusal_accuracy": 0.0,
+      "citation_precision": 1.0,
+      "page_accuracy": 1.0,
+      "total_ms": 42.26875305175781
+    }
+  }
+]
